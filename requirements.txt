@@ -1,0 +1,5 @@
+cryptography==39.0.1
+pytest==7.2.1
+numpy==1.24.2
+gmpy2==2.1.5
+
