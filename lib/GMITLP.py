@@ -7,8 +7,10 @@ COMMITMENT_LENGTH = 128  # hard coded for hash commitments
 
 
 class GMITLP:
-    def __init__(self, *, tlp=TLP, hash_func=SHA512Wrapper, seed=None, **kwargs):
-        self.random = Random(seed=seed)
+    def __init__(self, *, tlp=TLP, hash_func=SHA512Wrapper, random=None, seed=None, **kwargs):
+        if random is None:
+            random = Random(seed=seed)
+        self.random = random
         self.tlp = tlp(seed=seed, random=self.random, **kwargs)
         self.hash = hash_func
 
@@ -77,5 +79,4 @@ class GMITLP:
             yield m_i, d_i
 
     def verify(self, m, d, h):
-        h_prime = self.hash.digest(m + d)
-        assert h == h_prime
+        assert h == self.hash.digest(m + d)

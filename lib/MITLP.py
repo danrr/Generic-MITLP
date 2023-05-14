@@ -7,8 +7,10 @@ COMMITMENT_LENGTH = 128  # hard coded for hash commitments
 
 
 class MITLP:
-    def __init__(self, *, tlp=TLP, hash_func=SHA512Wrapper, seed=None, **kwargs):
-        self.random = Random(seed=seed)
+    def __init__(self, *, tlp=TLP, hash_func=SHA512Wrapper, random=None, seed=None, **kwargs):
+        if random is None:
+            random = Random(seed=seed)
+        self.random = random
         self.tlp = tlp(seed=seed, random=self.random, **kwargs)
         self.hash = hash_func
 
@@ -22,10 +24,10 @@ class MITLP:
 
         r = [r_0] + [self.random.gen_random_generator_mod_n(n) for _ in range(z - 1)]
         r_bin = [gmpy2.to_binary(ri) for ri in r]
-        len_bytes = COMMITMENT_LENGTH // 8
-        d = [self.random.gen_random_bytes(len_bytes) for _ in range(z)]
+        len_commitment = COMMITMENT_LENGTH // 8
+        d = [self.random.gen_random_bytes(len_commitment) for _ in range(z)]
 
-        aux = (self.hash.name, len_bytes, [len(ri) for ri in r_bin])
+        aux = (self.hash.name, len_commitment, [len(ri) for ri in r_bin])
 
         return (aux, n, t, r_0), (a, r_bin, d)
 
@@ -73,5 +75,4 @@ class MITLP:
             yield m_i, d_i
 
     def verify(self, m, d, h):
-        h_prime = self.hash.digest(m + d)
-        assert h == h_prime
+        assert h == self.hash.digest(m + d)
