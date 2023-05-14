@@ -1,20 +1,20 @@
 import pytest
-
-from implementation import MITLP
+from lib import MITLP
 
 
 @pytest.mark.parametrize("messages", [
-    ["test"],
-    [12],
-    ["test1", "test2"],
-    ["test1", b"test2"],
+    [b""],
+    [b"t"],
+    [b"test"],
+    [b"test1", b"test2"],
+    [b"test1", b"test2", b"test2", b"test2", b"test2"],
 ])
 def test_mitlp(messages):
+    mitlp = MITLP()
     z = len(messages)
-    pk, sk = MITLP.setup(z, 1, 1)
-    _, puzz_list, hash_list = MITLP.generate(messages, pk, sk)
-    s = MITLP.solve(pk, puzz_list)
+    pk, sk = mitlp.setup(z, 1, 1)
+    puzz_list, hash_list = mitlp.generate(messages, pk, sk)
+    s = mitlp.solve(pk, puzz_list)
     for i, (m, d) in enumerate(s):
-        assert m == bytes(messages[i], 'utf-8')
-        MITLP.verify(m, d, hash_list[i])
-
+        assert m == messages[i]
+        mitlp.verify(m, d, hash_list[i])
