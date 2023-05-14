@@ -1,6 +1,7 @@
 from lib import GMITLP
 from lib.wrappers import Random, FernetWrapper
 
+
 class DGMITLP:
     def __init__(self, *, sym_enc=None, gmitlp=GMITLP, random=None, seed=None, **kwargs):
         if random is None:
