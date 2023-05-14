@@ -1,20 +1,15 @@
-from gmpy2 import gmpy2
-
 from lib import GMITLP
 from lib.wrappers import Random, FernetWrapper
-
-COMMITMENT_LENGTH = 128  # hard coded for hash commitments
-
 
 class DGMITLP:
     def __init__(self, *, sym_enc=None, gmitlp=GMITLP, random=None, seed=None, **kwargs):
         if random is None:
             random = Random(seed=seed)
+        self.random = random
         if sym_enc is None:
             sym_enc = FernetWrapper()
         self.sym_enc = sym_enc
-        self.random = random
-        self.gmitlp = GMITLP(seed=seed, random=self.random, **kwargs, sym_enc=self.sym_enc)
+        self.gmitlp = gmitlp(seed=seed, random=self.random, sym_enc=self.sym_enc, **kwargs)
 
     def client_setup(self):
         return self.sym_enc.generate_key()
