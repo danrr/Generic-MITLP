@@ -15,15 +15,15 @@ class GMITLP:
         self.hash = hash_func
 
     def setup(self, seconds, squaring_per_second, keysize=2048):
-        tlp_pk, tlp_sk = self.tlp.setup(seconds[0], squaring_per_second, keysize)
-        n, t_0, r_0 = tlp_pk
-        _, _, phi_n, a_0 = tlp_sk
+        tlp_pk, tlp_sk = self.tlp.setup(1, 1, keysize)
+        n, _, r_0 = tlp_pk
+        _, _, phi_n, _ = tlp_sk
 
         # todo: can I reuse MITLP's setup?
 
-        t = [t_0] + [gmpy2.mpz(second) * squaring_per_second for second in seconds[1:]]
+        t = [gmpy2.mpz(second) * squaring_per_second for second in seconds]
         # todo: can I make this more efficient?
-        a = [a_0] + [pow(2, ts, phi_n) for ts in t[1:]]
+        a = [pow(2, ts, phi_n) for ts in t]
 
         r = [r_0] + [self.random.gen_random_generator_mod_n(n) for _ in seconds[1:]]
         r_bin = [gmpy2.to_binary(ri) for ri in r]
