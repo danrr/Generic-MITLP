@@ -8,28 +8,23 @@ from consts import SQUARINGS_PER_SEC, SEED, KEYSIZE, MESSAGE
 INSTANCES = [10 ** i for i in range(1, 3)]
 
 
-fixed_interval = 10
-
-
 # todo: loop over different sizes of z
 # todo: store in some format that can be output to csv
 # todo: pyplot
 
 
-def benchmark_time():
-    # todo: loop over multiple combinations of instances and intervals
-    for instances in INSTANCES:
-        distinct_intervals = [fixed_interval for _ in range(instances)]
-        print(f"Setup time for {instances} instances of {fixed_interval} seconds each")
-        messages = [MESSAGE] * instances
-        benchmark_time_tlp(messages, distinct_intervals)
-        print()
-        benchmark_time_mitlp(messages, instances)
-        print()
-        benchmark_time_gmitlp(messages, distinct_intervals)
-        print()
-        benchmark_time_dgmitlp(messages, distinct_intervals)
-        print()
+def benchmark_time(instances, fixed_interval):
+    distinct_intervals = [fixed_interval for _ in range(instances)]
+    print(f"Setup time for {instances} instances of {fixed_interval} seconds each")
+    messages = [MESSAGE] * instances
+    benchmark_time_tlp(messages, distinct_intervals)
+    print()
+    benchmark_time_mitlp(messages, instances, fixed_interval)
+    print()
+    benchmark_time_gmitlp(messages, distinct_intervals)
+    print()
+    benchmark_time_dgmitlp(messages, distinct_intervals)
+    print()
 
 
 def benchmark_time_tlp(messages, distinct_intervals):
@@ -63,7 +58,7 @@ def benchmark_time_tlp(messages, distinct_intervals):
     print("TLP setup and generate fixed n", time_fixed_n)
 
 
-def benchmark_time_mitlp(messages, instances):
+def benchmark_time_mitlp(messages, instances, fixed_interval):
     mitlp = MITLP(seed=SEED)
 
     pk, sk = mitlp.setup(instances, fixed_interval, SQUARINGS_PER_SEC[KEYSIZE], KEYSIZE)
@@ -77,7 +72,6 @@ def benchmark_time_mitlp(messages, instances):
 
 
 def benchmark_time_gmitlp(messages, distinct_intervals):
-    # todo review after sc implementation
     gmitlp = GMITLP(seed=SEED)
 
     pk, sk = gmitlp.setup(distinct_intervals, SQUARINGS_PER_SEC[KEYSIZE], KEYSIZE)
@@ -126,24 +120,34 @@ def get_size_of_output(output):
     return size_n, size_t, size_r, size_e, size_d, size_pk, size_sk, total_size
 
 
-def benchmark_size():
+def benchmark_size(instances, fixed_interval):
     headings = ('Size of n', 'Size of t', 'Size of r', 'Size of e', 'Size of d', 'Size of public key',
                 'Size of secret key', 'Total size')
 
     mitlp = MITLP(seed=SEED)
     gmitlp = GMITLP(seed=SEED)
 
+    distinct_intervals = [fixed_interval for _ in range(instances)]
+    mitlp_size = get_size_of_output(
+        mitlp.setup(instances, fixed_interval, SQUARINGS_PER_SEC[KEYSIZE], keysize=KEYSIZE))
+    gmitlp_size = get_size_of_output(
+        gmitlp.setup(distinct_intervals, SQUARINGS_PER_SEC[KEYSIZE], keysize=KEYSIZE))
+    print(f"For {instances} instances of {fixed_interval} seconds each")
+    print(f"{'TLP':20} {'MITLP': >20} {'GMITLP': >20} {'Difference': >20}")
+    for heading, val1, val2 in zip(headings, mitlp_size, gmitlp_size):
+        print(f"{heading:20} {val1: >20} {val2: >20} {val2 - val1: >20}")
+
+
+def benchmark():
+    fixed_interval = 10
+
     for instances in INSTANCES:
-        distinct_intervals = [fixed_interval for _ in range(instances)]
-        mitlp_size = get_size_of_output(mitlp.setup(instances, fixed_interval, SQUARINGS_PER_SEC[SQUARINGS_PER_SEC], keysize=KEYSIZE))
-        gmitlp_size = get_size_of_output(gmitlp.setup(distinct_intervals, SQUARINGS_PER_SEC[SQUARINGS_PER_SEC], keysize=KEYSIZE))
-        print(f"For {instances} instances of {fixed_interval} seconds each")
-        print(f"{'TLP':20} {'MITLP': >20} {'GMITLP': >20} {'Difference': >20}")
-        for heading, val1, val2 in zip(headings, mitlp_size, gmitlp_size):
-            print(f"{heading:20} {val1: >20} {val2: >20} {val2 - val1: >20}")
+        benchmark_size(instances, fixed_interval)
+        print()
+
+    for instances in INSTANCES:
+        benchmark_time(instances, fixed_interval)
 
 
 if __name__ == "__main__":
-    # benchmark_size()
-    # # print()
-    benchmark_time()
+    benchmark()

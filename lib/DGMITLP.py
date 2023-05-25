@@ -1,4 +1,3 @@
-from collections import namedtuple
 from datetime import datetime
 from itertools import accumulate
 from operator import add
