@@ -14,28 +14,29 @@ class GMITLP:
         self.tlp = tlp(seed=seed, random=self.random, **kwargs)
         self.hash = hash_func
 
-    def setup(self, seconds, squaring_per_second, keysize=2048):
+    def setup(self, intervals, squaring_per_second, keysize=2048):
         tlp_pk, tlp_sk = self.tlp.setup(1, 1, keysize)
         n, _, r_0 = tlp_pk
         _, _, phi_n, _ = tlp_sk
 
         # todo: can I reuse MITLP's setup?
 
-        t = [gmpy2.mpz(second) * squaring_per_second for second in seconds]
-        # todo: can I make this more efficient?
+        t = [gmpy2.mpz(interval) * squaring_per_second for interval in intervals]
+        # todo: can I make this more efficient? fixed base
         a = [pow(2, ts, phi_n) for ts in t]
 
-        r = [r_0] + [self.random.gen_random_generator_mod_n(n) for _ in seconds[1:]]
+        r = [r_0] + [self.random.gen_random_generator_mod_n(n) for _ in intervals[1:]]
         r_bin = [gmpy2.to_binary(ri) for ri in r]
 
         len_bytes = COMMITMENT_LENGTH // 8
-        d = [self.random.gen_random_bytes(len_bytes) for _ in seconds]
+        d = [self.random.gen_random_bytes(len_bytes) for _ in intervals]
 
         aux = (self.hash.name, len_bytes, [len(ri) for ri in r_bin])
 
         return (aux, n, t, r_0), (a, r_bin, d)
 
     def generate(self, m, pk, sk):
+        # todo: generator function?
         aux, n, t, _ = pk
         a, r, d = sk
         z = len(m)
@@ -43,7 +44,7 @@ class GMITLP:
             raise ValueError('length of m, r, and d must be equal')
 
         hash_list = [0] * z
-        puzz_list = [0] * z
+        puzz_list = [(None, None)] * z
         for i in range(z):
             pk_i = n, t[i], gmpy2.from_binary(r[i])
 

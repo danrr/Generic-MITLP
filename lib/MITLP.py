@@ -32,6 +32,7 @@ class MITLP:
         return (aux, n, t, r_0), (a, r_bin, d)
 
     def generate(self, m, pk, sk):
+        # todo: generator function?
         aux, n, t, _ = pk
         a, r, d = sk
         z = len(m)
@@ -39,7 +40,7 @@ class MITLP:
             raise ValueError('length of m, r, and d must be equal')
 
         hash_list = [0] * z
-        puzz_list = [0] * z
+        puzz_list = [(None, None)] * z
         for i in range(z):
             pk_i = n, t, gmpy2.from_binary(r[i])
 

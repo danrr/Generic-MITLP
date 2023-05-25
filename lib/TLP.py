@@ -1,4 +1,3 @@
-
 from gmpy2 import gmpy2
 
 from lib.wrappers import FernetWrapper, RsaWrapper, Random, SeededRSA
@@ -19,11 +18,11 @@ class TLP:
             random = Random(seed=seed)
         self.gen_random_generator = random.gen_random_generator_mod_n
 
-    def setup(self, seconds, squarings_per_second, keysize = 2048):
+    def setup(self, seconds, squarings_per_second, keysize=2048):
         n, p, q, phi_n = self.gen_modulus(keysize=keysize)
         r = self.gen_random_generator(n)
         t = gmpy2.mpz(seconds * squarings_per_second)
-        a = pow(2, t, phi_n)
+        a = gmpy2.powmod(2, t, phi_n)
         return (n, t, r), (p, q, phi_n, a)
 
     def generate(self, pk, sk, message):
@@ -41,7 +40,7 @@ class TLP:
         n, t, r = pk
 
         for i in range(t):
-            r = pow(r, 2, n)
+            r = r ** 2 % n
         key_int = int((encrypted_key - r) % n)
         message = self.sym_enc.decrypt(key_int, encrypted_message)
         return message
