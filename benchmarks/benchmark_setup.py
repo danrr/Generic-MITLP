@@ -4,11 +4,7 @@ from lib import TLP, MITLP, GMITLP, DGMITLP
 from utils import timer, get_size, add_times
 from consts import SQUARINGS_PER_SEC, SEED, KEYSIZE, MESSAGE
 
-# INSTANCES = [10 ** i for i in range(1, 7)]
-INSTANCES = [10 ** i for i in range(1, 3)]
 
-
-# todo: loop over different sizes of z
 # todo: store in some format that can be output to csv
 # todo: pyplot
 
@@ -138,14 +134,27 @@ def benchmark_size(instances, fixed_interval):
         print(f"{heading:20} {val1: >20} {val2: >20} {val2 - val1: >20}")
 
 
+# INSTANCES = [10 ** i for i in range(1, 7)]
+INSTANCES = [10 ** i for i in range(1, 3)]
+FIXED_INTERVALS = [10 ** i for i in range(1, 6)]
+
+
 def benchmark():
     fixed_interval = 10
+    instances = 1000
 
     for instances in INSTANCES:
         benchmark_size(instances, fixed_interval)
         print()
 
     for instances in INSTANCES:
+        benchmark_time(instances, fixed_interval)
+
+    for fixed_interval in FIXED_INTERVALS:
+        benchmark_size(instances, fixed_interval)
+        print()
+
+    for fixed_interval in FIXED_INTERVALS:
         benchmark_time(instances, fixed_interval)
 
 

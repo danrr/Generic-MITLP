@@ -19,5 +19,4 @@ def benchmark_tlp_solve_single():
 
 
 if __name__ == "__main__":
-    for i in range(10):
-        benchmark_tlp_solve_single()
+    benchmark_tlp_solve_single()
