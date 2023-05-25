@@ -21,9 +21,9 @@ class GMITLP:
 
         # todo: can I reuse MITLP's setup?
 
-        t = [gmpy2.mpz(interval) * squaring_per_second for interval in intervals]
+        t = [gmpy2.mpz(interval * squaring_per_second) for interval in intervals]
         # todo: can I make this more efficient? fixed base
-        a = [pow(2, ts, phi_n) for ts in t]
+        a = [gmpy2.powmod(2, t_i, phi_n) for t_i in t]
 
         r = [r_0] + [self.random.gen_random_generator_mod_n(n) for _ in intervals[1:]]
         r_bin = [gmpy2.to_binary(ri) for ri in r]

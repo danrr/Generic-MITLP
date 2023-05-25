@@ -92,7 +92,7 @@ class DGMITLP:
         upper_bounds = sc.upper_bounds
         squarings_per_sec = server_info.squarings
 
-        prev_bound = 0
+        prev_bound = sc.start_time
         for i, upper_bound in enumerate(upper_bounds):
             server_time = t[i] / squarings_per_sec
             maximum_time = upper_bound - prev_bound

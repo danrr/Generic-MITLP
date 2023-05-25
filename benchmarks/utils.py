@@ -13,6 +13,19 @@ def timer(f, *args):
     )
 
 
+def timer_with_output(f, *args):
+    output = []
+
+    def func():
+        output.clear()
+        output.append(f(*args))
+
+    return [timeit.Timer(func).repeat(
+        repeat=REPEAT,
+        number=NUMBER
+    ), output[0]]
+
+
 def get_size(x):
     size = sys.getsizeof(x)
     if hasattr(x, '__iter__') and not isinstance(x, (str, bytes, bytearray)):
@@ -26,4 +39,3 @@ def add_times(a, b, *args):
     for arg in args:
         result = list(map(add, arg, result))
     return result
-

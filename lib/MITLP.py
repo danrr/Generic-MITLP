@@ -14,11 +14,11 @@ class MITLP:
         self.tlp = tlp(seed=seed, random=self.random, **kwargs)
         self.hash = hash_func
 
-    def setup(self, z, seconds, squaring_per_second, keysize=2048):
+    def setup(self, z, interval, squaring_per_second, keysize=2048):
         if z < 1:
             raise ValueError('z must be greater than 0')
 
-        tlp_pk, tlp_sk = self.tlp.setup(seconds, squaring_per_second, keysize)
+        tlp_pk, tlp_sk = self.tlp.setup(interval, squaring_per_second, keysize)
         n, t, r_0 = tlp_pk
         _, _, _, a = tlp_sk
 
