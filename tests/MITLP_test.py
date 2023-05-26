@@ -1,7 +1,10 @@
 import pytest
 from lib import MITLP
 
-
+@pytest.mark.parametrize("keysize", [
+    1024,
+    2048
+])
 @pytest.mark.parametrize("messages", [
     [b""],
     [b"t"],
@@ -9,10 +12,10 @@ from lib import MITLP
     [b"test1", b"test2"],
     [b"test1", b"test2", b"test2", b"test2", b"test2"],
 ])
-def test_mitlp(messages):
+def test_mitlp(keysize, messages):
     mitlp = MITLP()
     z = len(messages)
-    pk, sk = mitlp.setup(z, 1, 1)
+    pk, sk = mitlp.setup(z, 1, 1, keysize=keysize)
     puzz_list, hash_list = mitlp.generate(messages, pk, sk)
     s = mitlp.solve(pk, puzz_list)
     for i, (m, d) in enumerate(s):

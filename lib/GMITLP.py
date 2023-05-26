@@ -26,12 +26,13 @@ class GMITLP:
         a = [gmpy2.powmod(2, t_i, phi_n) for t_i in t]
 
         r = [r_0] + [self.random.gen_random_generator_mod_n(n) for _ in intervals[1:]]
-        r_bin = [gmpy2.to_binary(ri) for ri in r]
+        len_r = keysize // 8
+        r_bin = [ri.to_bytes(length=len_r) for ri in r]
 
         len_bytes = COMMITMENT_LENGTH // 8
         d = [self.random.gen_random_bytes(len_bytes) for _ in intervals]
 
-        aux = (self.hash.name, len_bytes, [len(ri) for ri in r_bin])
+        aux = (self.hash.name, len_bytes, len_r)
 
         return (aux, n, t, r_0), (a, r_bin, d)
 
@@ -46,7 +47,7 @@ class GMITLP:
         hash_list = [0] * z
         puzz_list = [(None, None)] * z
         for i in range(z):
-            pk_i = n, t[i], gmpy2.from_binary(r[i])
+            pk_i = n, t[i], gmpy2.mpz.from_bytes(r[i])
 
             message = m[i] + d[i]
             hash_list[i] = self.hash.digest(message)
@@ -67,10 +68,9 @@ class GMITLP:
             s_i = self.tlp.solve((n, t[i], r_i), puzz[i])
 
             if i < z - 1:
-                len_r_i = len_r[i + 1]
-                r_i = s_i[-len_r_i:]
-                r_i = gmpy2.from_binary(r_i)
-                message = s_i[:-len_r_i]
+                r_i = s_i[-len_r:]
+                r_i = gmpy2.mpz.from_bytes(r_i)
+                message = s_i[:-len_r]
             else:
                 message = s_i
 
