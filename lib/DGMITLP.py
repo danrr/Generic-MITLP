@@ -84,6 +84,7 @@ class DGMITLP:
         # todo: use start_time to send puzz_list to TPH
 
     def solve(self, sc, server_info, pk, puzz, coins_acceptable):
+        # todo: coins is a vector now
         coins = sc.coins
         if coins < coins_acceptable:
             return None, False
@@ -115,6 +116,7 @@ class DGMITLP:
         self.gmitlp.verify(solution, witness, commitment)
 
     def pay(self, sc, i, z):
+        # todo: coins is a vector now
         coins = sc.coins // z
         try:
             self.verify(sc, i)
