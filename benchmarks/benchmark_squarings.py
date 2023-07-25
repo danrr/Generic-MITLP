@@ -51,5 +51,5 @@ def time_fixed_squarings(squarings):
 
 
 if __name__ == '__main__':
-    print(timer(count_squarings_in_fixed_time))
-    # print(timer(time_fixed_squarings, 100_000_000))
+    # print(timer(count_squarings_in_fixed_time))
+    print(timer(time_fixed_squarings, 100_000_000))
