@@ -1,5 +1,3 @@
 cryptography==39.0.1
 pytest==7.2.1
-# gmpy2==2.1.5
-# use pre-release for to_bytes/from_bytes
-git+https://github.com/aleaxit/gmpy#56475a07ed8e326db43664c30aa896779a2afc5b
+gmpy2==2.1.5
