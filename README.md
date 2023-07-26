@@ -22,3 +22,10 @@ pytest
 `benchmark_puzzles.py` - Find the run time of each algorithm for all puzzles
 
 `benchmark_tlp_solve_single.py` - Find the run time of solving a single TLP; useful in making sure the benchmarking is correct
+
+### Squaring Benchmark Results
+| CPU      | Squarings per second |        |
+|:---------|---------------------:|--------|
+|          |                 1024 | 2048   |
+| Apple M1 |              2260000 | 845000 |
+

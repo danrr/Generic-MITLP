@@ -47,6 +47,7 @@ def time_fixed_squarings(squarings):
         r = (r ** 2) % n
     stop = now()
     seconds = (stop - start) / MILI_TO_S
+    print(seconds)
     print(squarings / seconds)
 
 
