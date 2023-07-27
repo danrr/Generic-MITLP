@@ -22,8 +22,8 @@
 #cat /proc/cpuinfo
 #lscpu
 
-python3 -m venv .venv
-source ./.venv/bin/activate
+#python3 -m venv .venv
+#source ./.venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
-python benchmarks/benchmark_squarings.py
+python3 benchmarks/benchmark_squarings.py
