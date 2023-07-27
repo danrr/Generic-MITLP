@@ -28,6 +28,6 @@ cat /proc/cpuinfo
 curl -o get-pip.py https://bootstrap.pypa.io/get-pip.py
 python3 get-pip.py
 
-pip install -r requirements.txt
-pip install -e .
+python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
 python3 benchmarks/benchmark_squarings.py
