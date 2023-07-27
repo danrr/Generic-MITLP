@@ -24,9 +24,9 @@ pytest
 `benchmark_tlp_solve_single.py` - Find the run time of solving a single TLP; useful in making sure the benchmarking is correct
 
 ### Squaring Benchmark Results
-| CPU                                                                  | Squarings per second |         |
-|:---------------------------------------------------------------------|---------------------:|--------:|
-|                                                                      |                 1024 |    2048 |
-| Apple M1                                                             |              2260000 |  845000 |
-| Intel Haswell @2.4MHz                                                |              1683087 |  671000 |
-| Azure B1ls_v1 running Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz |              1400000 | |
+| CPU                                                                  | Squarings per second |        |
+|:---------------------------------------------------------------------|---------------------:|-------:|
+|                                                                      |                 1024 |   2048 |
+| Apple M1                                                             |              2260000 | 845000 |
+| Intel Haswell @2.4MHz                                                |              1683087 | 671000 |
+| Azure B1ls_v1 running Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz |              1400000 | 545000 |

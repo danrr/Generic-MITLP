@@ -19,7 +19,7 @@
 #export PATH=/share/apps/python-3.9.5-shared/bin:$PATH
 #export LD_LIBRARY_PATH=/share/apps/python-3.9.5-shared/lib:$LD_LIBRARY_PATH
 #
-#cat /proc/cpuinfo
+cat /proc/cpuinfo
 #lscpu
 
 #python3 -m venv .venv
