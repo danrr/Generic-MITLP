@@ -38,9 +38,9 @@ def count_squarings_in_fixed_time():
     # print("per hour", counter / INTERVAL * 3600)
 
 
-def time_fixed_squarings(squarings):
+def time_fixed_squarings(squarings, keysize=KEYSIZE):
     tlp = TLP(seed=SEED)
-    pk, sk = tlp.setup(1, 1, keysize=KEYSIZE)
+    pk, sk = tlp.setup(1, 1, keysize=keysize)
     n, _, r = pk
     start = now()
     for _ in range(squarings):
@@ -53,4 +53,5 @@ def time_fixed_squarings(squarings):
 
 if __name__ == '__main__':
     # print(timer(count_squarings_in_fixed_time))
-    print(timer(time_fixed_squarings, 100_000_000))
+    for keysize in [1024, 2048]:
+        print(timer(time_fixed_squarings, 100_000_000, keysize))
