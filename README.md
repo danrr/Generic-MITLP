@@ -40,7 +40,7 @@ s - secure storage (not used)
 | Azure B2als_v2 (burst general computing) | AMD EPYC 7763 @2.45GHz                         |      1913000 |        685000 |       US$0.04 |
 | Azure F2s_v2 (compute optimized)         | Intel(R) Xeon(R) Platinum 8272CL @ 2.60GHz     |      1612000 |        628000 |       US$0.10 |
 | Azure DS2_v2 (compute optimized)         | Intel(R) Xeon(R) E5-2673 v3 @ 2.40GHz          |      1201000 |        480000 |       US$0.14 |
-| Azure D2as_v5 (compute optimized)        | AMD EPYC 7763 @ 2.45GHz                        |      1835000 |        656000 |       US$0.10 |
+| Azure D2as_v5 (compute optimized)        | AMD EPYC 7763 @ 2.45GHz                        |      1935000 |        686000 |       US$0.10 |
 | Azure D2ls_v5 (compute optimized)        | Intel(R) Xeon(R) Platinum 8370C @ 2.80GHz      |      1509000 |        573000 |       US$0.10 |
 | Azure FX                                 | todo                                           |
 | Azure HC                                 | todo                                           |
