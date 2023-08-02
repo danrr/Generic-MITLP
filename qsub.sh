@@ -21,6 +21,8 @@
 #
 cat /proc/cpuinfo
 #lscpu
+#sudo apt-get install libmpfr-dev libgmp3-dev python3-dev libmpc-dev
+
 
 #python3 -m venv .venv
 #source ./.venv/bin/activate
