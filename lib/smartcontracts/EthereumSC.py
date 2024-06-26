@@ -182,22 +182,3 @@ class EthereumSC(SCInterface):
 
         tx_hash = tx.transact(props)
         return self.web3.eth.wait_for_transaction_receipt(tx_hash).status == 1
-
-
-if __name__ == "__main__":
-    test_provider = EthereumTesterProvider(ethereum_tester=EthereumTester(backend=PyEVMBackend()))
-    test_web3 = Web3(test_provider)
-    test_account = test_web3.eth.accounts[1]
-    print(test_account)
-
-    sc = EthereumSC(account=test_account, web3=test_web3)
-    sc.initiate([1, 2], 10, 1, [1, 2], test_account)
-    sc.commitments = [143, 244]
-    print(sc.commitments)
-    print(sc.coins)
-    print(sc.start_time)
-    print(sc.upper_bounds)
-    sc.add_solution(100, 1000)
-    print(sc.get_message_at(0))
-    sc.payout(0)
-    print("EthereumSC ran successfully")

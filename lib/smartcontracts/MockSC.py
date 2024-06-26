@@ -33,12 +33,3 @@ class MockSC(SCInterface):
 
     def switch_to_account(self, account):
         pass
-
-
-if __name__ == "__main__":
-    sc = MockSC()
-    sc.initiate(1, 2, 3, [4, 5], 6)
-    sc.add_solution("solution", "witness")
-    sc.get_message_at(0)
-    print("MockSC ran successfully")
-
