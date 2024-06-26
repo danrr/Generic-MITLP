@@ -73,6 +73,12 @@ class EthereumSC(SCInterface):
     def get_message_at(self, i):
         return self._contract.functions.getSolutionAt(i).call()
 
+    def payout(self, i):
+        if not self._has_succeded(
+                self._contract.functions.payout(i)
+        ):
+            raise RuntimeError("Payout was not successful")
+
     # Private Properties #
 
     @property
@@ -181,4 +187,5 @@ if __name__ == "__main__":
     print(sc.upper_bounds)
     sc.add_solution(100, 1000)
     print(sc.get_message_at(0))
+    sc.payout(0)
     print("EthereumSC ran successfully")

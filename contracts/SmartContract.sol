@@ -10,7 +10,8 @@ contract SmartContract {
         uint256 solution;
         uint256 witness;
         uint256 timestamp;
-
+        address solver;
+        bool paidOut;
     }
 
     modifier onlyHelper() {
@@ -52,7 +53,9 @@ contract SmartContract {
                 commitment: 0,
                 solution: 0,
                 witness: 0,
-                timestamp: 0
+                timestamp: 0,
+                solver: address(0),
+                paidOut: false
             });
             receivedValue -= _coins[i];
         }
@@ -99,11 +102,19 @@ contract SmartContract {
         puzzleParts[nextUnsolvedPuzzlePart].solution = solution;
         puzzleParts[nextUnsolvedPuzzlePart].witness = witness;
         puzzleParts[nextUnsolvedPuzzlePart].timestamp = block.timestamp;
+        puzzleParts[nextUnsolvedPuzzlePart].solver = msg.sender;
         nextUnsolvedPuzzlePart++;
     }
 
     function getSolutionAt(uint puzzlePartIndex) public view returns (uint256) {
         return puzzleParts[puzzlePartIndex].solution;
+    }
+
+    function payout(uint puzzlePartIndex) public onlyHelper {
+        require(!puzzleParts[puzzlePartIndex].paidOut, "The puzzle part has already been paid out.");
+        puzzleParts[puzzlePartIndex].paidOut = true;
+        payable(puzzleParts[puzzlePartIndex].solver).transfer(puzzleParts[puzzlePartIndex].coin);
+
     }
 }
 
