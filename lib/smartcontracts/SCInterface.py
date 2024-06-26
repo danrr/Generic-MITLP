@@ -3,10 +3,6 @@ from abc import ABC, abstractmethod
 class SCInterface(ABC):
 
     @abstractmethod
-    def __init__(self, coins, start_time, extra_time, upper_bounds, helper_id):
-        pass
-
-    @abstractmethod
     def initiate(self, coins, start_time, extra_time, upper_bounds, helper_id):
         pass
 

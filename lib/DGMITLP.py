@@ -3,6 +3,7 @@ from itertools import accumulate
 from operator import add
 
 from lib import GMITLP
+from lib.smartcontracts import MockSC
 from lib.wrappers import Random, FernetWrapper
 
 from lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
@@ -15,28 +16,10 @@ def custom_extra_delay(squarings_upper_bound, seconds, aux):
     return seconds * (squarings_upper_bound / squarings - 1)
 
 
-class MockSC:
-    def __init__(self, coins, start_time, extra_time, upper_bounds, helper_id):
-        self.coins = coins
-        self.start_time = start_time
-        self.extra_time = extra_time
-        self.upper_bounds = upper_bounds
-        self.helper_id = helper_id
-        self.commitments = []
-        self.solutions = []
-        self.initial_timestamp = datetime.now()
-
-    def add_solution(self, solution, witness):
-        time = datetime.now()
-        self.solutions.append((solution, witness, time))
-        return time
-
-    def get_message_at(self, i):
-        return self.solutions[i][0]
 
 
 class DGMITLP:
-    def __init__(self, *, sym_enc=None, gmitlp=GMITLP, random=None, seed=None, SC=MockSC, **kwargs):
+    def __init__(self, *, sym_enc=None, gmitlp=GMITLP, random=None, seed=None, SC=MockSC(), **kwargs):
         if random is None:
             random = Random(seed=seed)
         self.random = random
@@ -70,7 +53,7 @@ class DGMITLP:
                 )
             )
         )[1:]
-        sc = self.SC(coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds,
+        sc = self.SC.initiate(coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds,
                      helper_id=helper_id)
         return extra_time, sc
 
