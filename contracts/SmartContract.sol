@@ -11,10 +11,15 @@ contract SmartContract {
 
     }
 
-    uint startTime;
-    uint extraTime;
-    address helperID;
-    uint initialTimestamp;
+    modifier onlyHelper() {
+        require(msg.sender == helperID, "Only the helper can call this function.");
+        _;
+    }
+
+    uint public startTime;
+    uint public extraTime;
+    address public helperID;
+    uint public initialTimestamp;
 
     mapping(uint => PuzzlePart) public puzzleParts;
     uint amountOfPuzzleParts;
@@ -52,5 +57,36 @@ contract SmartContract {
 
         amountOfPuzzleParts = _coins.length;
 
+    }
+
+    function commitments() public returns (uint256[] memory) {
+        uint256[] memory commitments = new uint256[](amountOfPuzzleParts);
+        for (uint i = 0; i < amountOfPuzzleParts; i++) {
+            commitments[i] = puzzleParts[i].commitment;
+        }
+        return commitments;
+    }
+
+    function setCommitments(uint256[] calldata _commitments) public onlyHelper {
+        require(_commitments.length == amountOfPuzzleParts, "The length of the commitments array should be equal to the amount of puzzle parts.");
+        for (uint i = 0; i < amountOfPuzzleParts; i++) {
+            puzzleParts[i].commitment = _commitments[i];
+        }
+    }
+
+    function coins() public returns (uint[] memory) {
+        uint[] memory coins = new uint[](amountOfPuzzleParts);
+        for (uint i = 0; i < amountOfPuzzleParts; i++) {
+            coins[i] = puzzleParts[i].coin;
+        }
+        return coins;
+    }
+
+    function upperBounds() public returns (uint[] memory) {
+        uint[] memory upperBounds = new uint[](amountOfPuzzleParts);
+        for (uint i = 0; i < amountOfPuzzleParts; i++) {
+            upperBounds[i] = puzzleParts[i].upperBound;
+        }
+        return upperBounds;
     }
 }
