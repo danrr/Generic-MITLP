@@ -14,13 +14,14 @@ CONTRACT_PATH = "../../contracts/SmartContract.sol"
 class EthereumSC(SCInterface):
     web3 = None
 
-    def __init__(self, account=None, web3=None):
+    def __init__(self, account=None, web3=None, contract_path=CONTRACT_PATH):
         print("Initiating EthereumSC")
         self._initiate_network(web3)
         print("Network initiated")
-        self.__account = account
+        self.account = account
         print("Account initiated")
         self.contract = None
+        self.contract_path = contract_path
 
     # Public Properties #
 
@@ -46,6 +47,17 @@ class EthereumSC(SCInterface):
     @property
     def start_time(self):
         return self._contract.functions.startTime().call()
+
+    @property
+    def solutions(self):
+        res = self._contract.functions.solutions().call()
+
+        return list(zip(res[0], res[1], res[2]))
+
+    @property
+    def initial_timestamp(self):
+        return self._contract.functions.initialTimestamp().call()
+
 
     # Public Methods #
 
@@ -94,19 +106,19 @@ class EthereumSC(SCInterface):
         self.__contract = value
 
     @property
-    def _account(self):
+    def account(self):
         if self._account is None:
             raise RuntimeError("No Account set.  Please set an account to use the contract.")
         return self._account
 
-    @_account.setter
-    def _account(self, value):
-        self.__account = value
+    @account.setter
+    def account(self, value):
+        self._account = value
 
     # Private Methods #
 
-    def _setup_account_from_index(self, account_index):
-        self._account = self.web3.eth.accounts[account_index]
+    def switch_to_account(self, account_index):
+        self.account = self.web3.eth.accounts[account_index]
 
     def _compile_contract(self):
         """
@@ -116,20 +128,20 @@ class EthereumSC(SCInterface):
         install_solc(SOLC_VERSION)
 
         compiled_sol = compile_files(
-            [CONTRACT_PATH],
+            [self.contract_path],
             output_values=["abi", "bin"],
             solc_version=SOLC_VERSION,
         )
 
-        abi = compiled_sol[CONTRACT_PATH + ":" + CONTRACT_NAME]["abi"]
-        bytecode = compiled_sol[CONTRACT_PATH + ":" + CONTRACT_NAME]["bin"]
+        abi = compiled_sol[self.contract_path + ":" + CONTRACT_NAME]["abi"]
+        bytecode = compiled_sol[self.contract_path + ":" + CONTRACT_NAME]["bin"]
 
         assert abi is not None
         assert bytecode is not None
 
         return abi, bytecode
 
-    def _deploy_contract(self, bytecode, abi, coins, start_time, extra_time, upper_bounds, helper_id):
+    def _deploy_contract(self, bytecode, abi, coins, start_time, extra_times, upper_bounds, helper_id):
         """
             Deploys the contract to the network
         """
@@ -138,11 +150,11 @@ class EthereumSC(SCInterface):
         tx_hash = contract.constructor(
             coins,
             start_time,
-            extra_time,
-            upper_bounds,
+            list(map(int, extra_times)),
+            list(map(int, upper_bounds)),
             helper_id
         ).transact(
-            {"from": self.__account, "value": functools.reduce(lambda x, y: x + y, coins)}
+            {"from": self.account, "value": functools.reduce(lambda x, y: x + y, coins)}
         )
 
         tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
@@ -166,7 +178,7 @@ class EthereumSC(SCInterface):
         assert self.web3.is_connected()
 
     def _has_succeded(self, tx):
-        props = {"from": self.__account}
+        props = {"from": self.account}
 
         tx_hash = tx.transact(props)
         return self.web3.eth.wait_for_transaction_receipt(tx_hash).status == 1

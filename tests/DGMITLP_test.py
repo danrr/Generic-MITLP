@@ -6,6 +6,7 @@ from collections import namedtuple
 import pytest
 from lib import DGMITLP, custom_extra_delay
 from lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
+from lib.smartcontracts import MockSC, EthereumSC
 
 Server_info = namedtuple("Aux_server_info", ["squarings"])
 
@@ -74,6 +75,10 @@ def test_dgmitlp_helper_good_enougjh(keysize):
     assert dgmitlp.gmitlp.solve.call_count == 1
 
 
+class SoliditySC:
+    pass
+
+
 @pytest.mark.parametrize("keysize", [
     1024,
     2048
@@ -84,35 +89,53 @@ def test_dgmitlp_helper_good_enougjh(keysize):
     ([b"test1", b"test2"], [1, 2]),
     ([b"test1", b"test2", b"test1", b"test2"], [1, 2, 1, 2]),
 ])
-def test_dgmitlp(keysize, messages, intervals):
+@pytest.mark.parametrize("sc", [
+    MockSC(),
+    EthereumSC(contract_path="../contracts/SmartContract.sol"),
+])
+def test_dgmitlp(keysize, messages, intervals, sc):
     squarigns_per_second_helper = 1
 
-    coins = 1
+    coins = [1] * len(intervals)
     coins_acceptable = 1
 
-    helper_id = 1
+    client_helper_id = 1
+    server_id = 0
+    server_helper_id = 2
     server_info = Server_info(squarings=1)
 
-    dgmitlp = DGMITLP()
+    helper_id = client_helper_id
+
+    dgmitlp = DGMITLP(SC=sc)
 
     # client
     csk = dgmitlp.client_setup()
     encrypted_messages, start_time = dgmitlp.client_delegation(messages, csk)
 
     # server
+    if type(sc) is EthereumSC:
+        # Generate an address for the client helper and save it
+        sc.switch_to_account(client_helper_id)
+        helper_id = sc.account
+    sc.switch_to_account(server_id)
+
     extra_time, sc = dgmitlp.server_delegation(intervals, server_info, coins, start_time, helper_id,
                                                squarings_upper_bound=SQUARINGS_PER_SEC_UPPER_BOUND[keysize],
                                                keysize=keysize)
 
     # TPH
+    sc.switch_to_account(client_helper_id)
     pk, sk = dgmitlp.helper_setup(intervals, squarigns_per_second_helper)
     puzz_list = dgmitlp.helper_generate(encrypted_messages, pk, sk, start_time, sc)
 
     # TPH'
+    sc.switch_to_account(server_helper_id)
     s = dgmitlp.solve(sc, server_info, pk, puzz_list, coins_acceptable)
     for (m_, d) in s:
         dgmitlp.register(sc, m_, d)
 
+    # server
+    sc.switch_to_account(server_id)
     for i, message in enumerate(messages):
         dgmitlp.verify(sc, i)
         m = dgmitlp.retrieve(sc, csk, i)

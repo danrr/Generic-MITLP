@@ -53,3 +53,13 @@ class SCInterface(ABC):
     @abstractmethod
     def commitments(self, commitments):
         pass
+
+    @property
+    @abstractmethod
+    def solutions(self):
+        pass
+
+    @property
+    @abstractmethod
+    def initial_timestamp(self):
+        pass

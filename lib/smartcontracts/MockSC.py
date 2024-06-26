@@ -5,10 +5,12 @@ from lib.smartcontracts.SCInterface import SCInterface
 
 class MockSC(SCInterface):
 
-    commitments = []
-    start_time = 0
-    upper_bounds = []
-    coins = []
+    commitments = None
+    start_time = None
+    upper_bounds = None
+    coins = None
+    solutions = None
+    initial_timestamp = None
 
     def initiate(self, coins, start_time, extra_time, upper_bounds, helper_id):
         self.coins = coins
@@ -18,16 +20,19 @@ class MockSC(SCInterface):
         self.helper_id = helper_id
         self.commitments = []
         self.solutions = []
-        self.initial_timestamp = datetime.now()
+        self.initial_timestamp = int(datetime.now().timestamp())
         return self
 
     def add_solution(self, solution, witness):
-        time = datetime.now()
+        time = int(datetime.now().timestamp())
         self.solutions.append((solution, witness, time))
         return time
 
     def get_message_at(self, i):
         return self.solutions[i][0]
+
+    def switch_to_account(self, account):
+        pass
 
 
 if __name__ == "__main__":

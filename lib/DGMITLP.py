@@ -67,10 +67,10 @@ class DGMITLP:
         # todo: use start_time to send puzz_list to TPH
 
     def solve(self, sc, server_info, pk, puzz, coins_acceptable):
-        # todo: coins is a vector now
         coins = sc.coins
-        if coins < coins_acceptable:
-            return None, False
+        for coin in coins:
+            if coin < coins_acceptable:
+                return None, False
 
         _, _, t, _ = pk
         upper_bounds = sc.upper_bounds
@@ -93,7 +93,7 @@ class DGMITLP:
     def verify(self, sc, i):
         solution, witness, time_solved = sc.solutions[i]
         commitment = sc.commitments[i]
-        time_to_solve = (time_solved - sc.initial_timestamp).total_seconds()
+        time_to_solve = (time_solved - sc.initial_timestamp)
         upper_bound = sc.upper_bounds[i]
         assert time_to_solve < upper_bound
         self.gmitlp.verify(solution, witness, commitment)
