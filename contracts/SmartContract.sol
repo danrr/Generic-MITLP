@@ -8,6 +8,8 @@ contract SmartContract {
         uint upperBound;
         uint256 commitment;
         uint256 solution;
+        uint256 witness;
+        uint256 timestamp;
 
     }
 
@@ -23,6 +25,7 @@ contract SmartContract {
 
     mapping(uint => PuzzlePart) public puzzleParts;
     uint amountOfPuzzleParts;
+    uint public nextUnsolvedPuzzlePart = 0;
 
     constructor(
         uint[] memory _coins,
@@ -47,7 +50,9 @@ contract SmartContract {
                 coin: _coins[i],
                 upperBound: _upperBounds[i],
                 commitment: 0,
-                solution: 0
+                solution: 0,
+                witness: 0,
+                timestamp: 0
             });
             receivedValue -= _coins[i];
         }
@@ -89,4 +94,16 @@ contract SmartContract {
         }
         return upperBounds;
     }
+
+    function addSolution(uint256 solution, uint256 witness) public {
+        puzzleParts[nextUnsolvedPuzzlePart].solution = solution;
+        puzzleParts[nextUnsolvedPuzzlePart].witness = witness;
+        puzzleParts[nextUnsolvedPuzzlePart].timestamp = block.timestamp;
+        nextUnsolvedPuzzlePart++;
+    }
+
+    function getSolutionAt(uint puzzlePartIndex) public view returns (uint256) {
+        return puzzleParts[puzzlePartIndex].solution;
+    }
 }
+

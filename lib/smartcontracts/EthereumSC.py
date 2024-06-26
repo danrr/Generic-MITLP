@@ -30,11 +30,10 @@ class EthereumSC(SCInterface):
 
     @commitments.setter
     def commitments(self, commitments):
-        self._send_and_wait(
-            self._contract.functions.setCommitments(commitments)
-        )
-        # Check if the commitments were set correctly
-        assert commitments == self._contract.functions.commitments().call()
+        if not self._has_succeded(
+                self._contract.functions.setCommitments(commitments)
+        ):
+            raise RuntimeError("Commitments were not set correctly")
 
     @property
     def coins(self):
@@ -66,10 +65,13 @@ class EthereumSC(SCInterface):
         self.contract = self.web3.eth.contract(address=contract_address, abi=abi)
 
     def add_solution(self, solution, witness):
-        pass
+        if not self._has_succeded(
+                self._contract.functions.addSolution(solution, witness)
+        ):
+            raise RuntimeError("Solution was not added correctly")
 
     def get_message_at(self, i):
-        pass
+        return self._contract.functions.getSolutionAt(i).call()
 
     # Private Properties #
 
@@ -127,16 +129,17 @@ class EthereumSC(SCInterface):
         """
         contract = self.web3.eth.contract(abi=abi, bytecode=bytecode)
 
-        tx_receipt = self._send_and_wait(
-            contract.constructor(
-                coins,
-                start_time,
-                extra_time,
-                upper_bounds,
-                helper_id
-            ),
-            value=functools.reduce(lambda x, y: x + y, coins)
+        tx_hash = contract.constructor(
+            coins,
+            start_time,
+            extra_time,
+            upper_bounds,
+            helper_id
+        ).transact(
+            {"from": self.__account, "value": functools.reduce(lambda x, y: x + y, coins)}
         )
+
+        tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
 
         self.contract = self.web3.eth.contract(address=tx_receipt.contractAddress, abi=abi)
         return tx_receipt.contractAddress
@@ -156,13 +159,11 @@ class EthereumSC(SCInterface):
 
         assert self.web3.is_connected()
 
-    def _send_and_wait(self, tx, value=None):
+    def _has_succeded(self, tx):
         props = {"from": self.__account}
-        if value is not None:
-            props["value"] = value
 
         tx_hash = tx.transact(props)
-        return self.web3.eth.wait_for_transaction_receipt(tx_hash)
+        return self.web3.eth.wait_for_transaction_receipt(tx_hash).status == 1
 
 
 if __name__ == "__main__":
@@ -178,4 +179,6 @@ if __name__ == "__main__":
     print(sc.coins)
     print(sc.start_time)
     print(sc.upper_bounds)
+    sc.add_solution(100, 1000)
+    print(sc.get_message_at(0))
     print("EthereumSC ran successfully")
