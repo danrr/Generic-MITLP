@@ -75,10 +75,6 @@ def test_dgmitlp_helper_good_enougjh(keysize):
     assert dgmitlp.gmitlp.solve.call_count == 1
 
 
-class SoliditySC:
-    pass
-
-
 @pytest.mark.parametrize("keysize", [
     1024,
     2048
