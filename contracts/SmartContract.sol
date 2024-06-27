@@ -119,7 +119,7 @@ contract SmartContract {
         return puzzleParts[puzzlePartIndex].solution;
     }
 
-    function solutions( ) public returns (bytes[] memory, bytes[] memory, uint[] memory) {
+    function solutions() public returns (bytes[] memory, bytes[] memory, uint[] memory) {
         bytes[] memory solutions = new bytes[](amountOfPuzzleParts);
         bytes[] memory witnesses = new bytes[](amountOfPuzzleParts);
         uint[] memory timestamps = new uint[](amountOfPuzzleParts);
@@ -131,11 +131,16 @@ contract SmartContract {
         return (solutions, witnesses, timestamps);
     }
 
-    function payout(uint puzzlePartIndex) public onlyOwner {
+    function pay(uint puzzlePartIndex) public onlyOwner {
         require(!puzzleParts[puzzlePartIndex].paidOut, "The puzzle part has already been paid out.");
         puzzleParts[puzzlePartIndex].paidOut = true;
         payable(puzzleParts[puzzlePartIndex].solver).transfer(puzzleParts[puzzlePartIndex].coin);
+    }
 
+    function payBack(uint puzzlePartIndex) public onlyOwner {
+        require(!puzzleParts[puzzlePartIndex].paidOut, "The puzzle part has already been paid out.");
+        puzzleParts[puzzlePartIndex].paidOut = true;
+        payable(owner).transfer(address(this).balance);
     }
 }
 

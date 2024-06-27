@@ -84,11 +84,17 @@ class EthereumSC(SCInterface):
     def get_message_at(self, i):
         return self._contract.functions.getSolutionAt(i).call()
 
-    def payout(self, i):
+    def pay(self, i):
         if not self._has_succeded(
-                self._contract.functions.payout(i)
+                self._contract.functions.pay(i)
         ):
             raise RuntimeError("Payout was not successful")
+
+    def pay_back(self, i):
+        if not self._has_succeded(
+                self._contract.functions.payBack(i)
+        ):
+            raise RuntimeError("Payback was not successful")
 
     # Private Properties #
 

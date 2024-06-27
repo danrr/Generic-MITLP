@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class SCInterface(ABC):
 
     @abstractmethod
@@ -12,6 +13,14 @@ class SCInterface(ABC):
 
     @abstractmethod
     def get_message_at(self, i):
+        pass
+
+    @abstractmethod
+    def pay(self, coins):
+        pass
+
+    @abstractmethod
+    def pay_back(self, coins):
         pass
 
     @property

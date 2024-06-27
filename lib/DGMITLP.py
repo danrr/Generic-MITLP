@@ -1,3 +1,4 @@
+import functools
 from datetime import datetime
 from itertools import accumulate
 from operator import add
@@ -14,8 +15,6 @@ def custom_extra_delay(squarings_upper_bound, seconds, aux):
     squarings = aux.squarings
     assert squarings <= squarings_upper_bound
     return seconds * (squarings_upper_bound / squarings - 1)
-
-
 
 
 class DGMITLP:
@@ -54,7 +53,7 @@ class DGMITLP:
             )
         )[1:]
         sc = self.SC.initiate(coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds,
-                     helper_id=helper_id)
+                              helper_id=helper_id)
         return extra_time, sc
 
     def helper_setup(self, intervals, squaring_per_second, keysize=2048):
@@ -98,14 +97,12 @@ class DGMITLP:
         assert time_to_solve < upper_bound
         self.gmitlp.verify(solution, witness, commitment)
 
-    def pay(self, sc, i, z):
-        # todo: coins is a vector now
-        coins = sc.coins // z
+    def pay(self, sc, i):
         try:
             self.verify(sc, i)
-            print(f"paying TPH' {coins}")
+            sc.pay(i)
         except AssertionError:
-            print(f"paying S back {coins}")
+            sc.pay_back(i)
 
     def retrieve(self, sc, csk, i):
         encrypted_message = sc.get_message_at(i)

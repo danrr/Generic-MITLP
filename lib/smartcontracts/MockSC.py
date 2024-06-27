@@ -34,3 +34,9 @@ class MockSC(SCInterface):
 
     def switch_to_account(self, account):
         pass
+
+    def pay(self, i):
+        print(f"paying TPH' {self.coins[i]}")
+
+    def pay_back(self, i):
+        print(f"paying TPH' back {self.coins[i]}")
