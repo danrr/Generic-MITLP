@@ -58,7 +58,6 @@ class EthereumSC(SCInterface):
     def initial_timestamp(self):
         return self._contract.functions.initialTimestamp().call()
 
-
     # Public Methods #
 
     def initiate(self, coins, start_time, extra_time, upper_bounds, helper_id):
