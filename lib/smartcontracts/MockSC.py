@@ -4,13 +4,14 @@ from lib.smartcontracts.SCInterface import SCInterface
 
 
 class MockSC(SCInterface):
-
     commitments = None
     start_time = None
     upper_bounds = None
     coins = None
     solutions = None
     initial_timestamp = None
+    helper_id = None
+    extra_time = None
 
     def initiate(self, coins, start_time, extra_time, upper_bounds, helper_id):
         self.coins = coins
