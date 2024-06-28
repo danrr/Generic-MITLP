@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import Mock
 
 import math
@@ -87,7 +88,7 @@ def test_dgmitlp_helper_good_enougjh(keysize):
 ])
 @pytest.mark.parametrize("sc", [
     MockSC(),
-    EthereumSC(contract_path="../contracts/SmartContract.sol"),
+    EthereumSC(contract_path=str(Path("contracts/SmartContract.sol").resolve()))
 ])
 def test_dgmitlp(keysize, messages, intervals, sc):
     squarigns_per_second_helper = 1
