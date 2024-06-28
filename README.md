@@ -7,6 +7,7 @@ This repository contains the implementation of multiple flavours of time-lock pu
 - [Original Time-Lock Puzzle by Rivest, Shamir & Wagner](https://dl.acm.org/doi/10.5555/888615)
 
 ## Installation
+`pip install -e .`
 `pip install -r requirements.txt`
 
 ## Testing
