@@ -27,7 +27,7 @@ def test_cdeg(keysize):
 
 
 def test_dgmitlp_too_few_coins():
-    coins = 0
+    coins = [0]
     coins_acceptable = 1
     sc = namedtuple("mock_sc", ["coins"])(coins)
     dgmitlp = DGMITLP()
@@ -39,7 +39,7 @@ def test_dgmitlp_too_few_coins():
     2048
 ])
 def test_dgmitlp_helper_too_slow(keysize):
-    coins = 1
+    coins = [1, 1]
     coins_acceptable = 1
     intervals = [1, 2]
     start_time = 0
@@ -60,7 +60,7 @@ def test_dgmitlp_helper_too_slow(keysize):
     2048
 ])
 def test_dgmitlp_helper_good_enougjh(keysize):
-    coins = 1
+    coins = [1, 1]
     coins_acceptable = 1
     intervals = [1, 2]
     start_time = 0
