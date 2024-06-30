@@ -2,7 +2,7 @@ import random
 import secrets
 from typing import Optional
 
-from gmpy2 import gmpy2
+import gmpy2
 
 
 class Random:
