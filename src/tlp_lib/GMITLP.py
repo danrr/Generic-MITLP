@@ -1,13 +1,25 @@
+from typing import Optional, Type
+
 from gmpy2 import gmpy2
 
 from lib import TLP
-from lib.wrappers import SHA512Wrapper, Random
+from lib.protocols import TLP_Public_Input, TLP_Secret_Input, TLPInterface
+from lib.wrappers import Random, SHA512Wrapper
+from lib.wrappers.protocols import HashFunc, RandGen
 
 COMMITMENT_LENGTH = 128  # hard coded for hash commitments
 
 
 class GMITLP:
-    def __init__(self, *, tlp=TLP, hash_func=SHA512Wrapper, random=None, seed=None, **kwargs):
+    def __init__(
+        self,
+        *,
+        tlp: Type[TLPInterface] = TLP,
+        hash_func: HashFunc = SHA512Wrapper,
+        random: Optional[RandGen] = None,
+        seed: Optional[int] = None,
+        **kwargs,
+    ):
         if random is None:
             random = Random(seed=seed)
         self.random = random
@@ -42,12 +54,12 @@ class GMITLP:
         a, r, d = sk
         z = len(m)
         if len(r) != z or len(d) != z:
-            raise ValueError('length of m, r, and d must be equal')
+            raise ValueError("length of m, r, and d must be equal")
 
-        hash_list = [0] * z
+        hash_list = [b"0"] * z
         puzz_list = [(None, None)] * z
         for i in range(z):
-            pk_i = n, t[i], gmpy2.mpz.from_bytes(r[i])
+            pk_i = (n, t[i], gmpy2.mpz.from_bytes(r[i]))
 
             message = m[i] + d[i]
             hash_list[i] = self.hash.digest(message)

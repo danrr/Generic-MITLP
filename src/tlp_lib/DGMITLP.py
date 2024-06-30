@@ -1,11 +1,12 @@
 from datetime import datetime
 from itertools import accumulate
 from operator import add
+from typing import Optional
 
 from lib import GMITLP
-from lib.wrappers import Random, FernetWrapper
-
 from lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
+from lib.wrappers import FernetWrapper, Random
+from lib.wrappers.protocols import RandGen, SymEnc
 
 
 # Set fixed TOC = repeated squaring in Z_(p*q)
@@ -36,7 +37,16 @@ class MockSC:
 
 
 class DGMITLP:
-    def __init__(self, *, sym_enc=None, gmitlp=GMITLP, random=None, seed=None, SC=MockSC, **kwargs):
+    def __init__(
+        self,
+        *,
+        gmitlp=GMITLP,
+        sym_enc: Optional[SymEnc] = None,
+        random: Optional[RandGen] = None,
+        seed: Optional[int] = None,
+        SC=MockSC,
+        **kwargs,
+    ):
         if random is None:
             random = Random(seed=seed)
         self.random = random
@@ -54,24 +64,26 @@ class DGMITLP:
         return [self.sym_enc.encrypt(csk, message) for message in messages], start_time
         # todo: send encrypted messages to TPH and start_time to TPH and S
 
-    def server_delegation(self, intervals, server_info, coins, start_time, helper_id, squarings_upper_bound=None,
-                          keysize=2048,
-                          cdeg=custom_extra_delay):
+    def server_delegation(
+        self,
+        intervals,
+        server_info,
+        coins,
+        start_time,
+        helper_id,
+        squarings_upper_bound=None,
+        keysize=2048,
+        cdeg=custom_extra_delay,
+    ):
         if squarings_upper_bound is None:
             squarings_upper_bound = SQUARINGS_PER_SEC_UPPER_BOUND[keysize]
 
         extra_time = [cdeg(squarings_upper_bound, interval, server_info) for interval in intervals]
         # todo: integrate with an actual smart contract
-        upper_bounds = list(
-            accumulate(
-                [start_time] +
-                list(
-                    map(add, intervals, extra_time)
-                )
-            )
-        )[1:]
-        sc = self.SC(coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds,
-                     helper_id=helper_id)
+        upper_bounds = list(accumulate([start_time] + list(map(add, intervals, extra_time))))[1:]
+        sc = self.SC(
+            coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds, helper_id=helper_id
+        )
         return extra_time, sc
 
     def helper_setup(self, intervals, squaring_per_second, keysize=2048):
