@@ -31,7 +31,7 @@ class EthereumSC:
 
     @commitments.setter
     def commitments(self, commitments):
-        if not self._has_succeded(self._contract.functions.setCommitments(commitments)):
+        if not self._has_succeeded(self._contract.functions.setCommitments(commitments)):
             raise RuntimeError("Commitments were not set correctly")
 
     @property
@@ -75,18 +75,18 @@ class EthereumSC:
         self.contract = self.web3.eth.contract(address=contract_address, abi=abi)
 
     def add_solution(self, solution, witness):
-        if not self._has_succeded(self._contract.functions.addSolution(solution, witness)):
+        if not self._has_succeeded(self._contract.functions.addSolution(solution, witness)):
             raise RuntimeError("Solution was not added correctly")
 
     def get_message_at(self, i):
         return self._contract.functions.getSolutionAt(i).call()
 
     def pay(self, i):
-        if not self._has_succeded(self._contract.functions.pay(i)):
+        if not self._has_succeeded(self._contract.functions.pay(i)):
             raise RuntimeError("Payout was not successful")
 
     def pay_back(self, i):
-        if not self._has_succeded(self._contract.functions.payBack(i)):
+        if not self._has_succeeded(self._contract.functions.payBack(i)):
             raise RuntimeError("Payback was not successful")
 
     # Private Properties #
@@ -169,7 +169,7 @@ class EthereumSC:
 
         assert self.web3.is_connected()
 
-    def _has_succeded(self, tx):
+    def _has_succeeded(self, tx):
         props = {"from": self.account}
 
         tx_hash = tx.transact(props)
