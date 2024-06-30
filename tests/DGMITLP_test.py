@@ -7,6 +7,7 @@ import pytest
 
 from tlp_lib import DGMITLP, custom_extra_delay
 from tlp_lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
+from tlp_lib.DGMITLP import CoinException, UpperBoundException
 from tlp_lib.protocols import Server_Info
 from tlp_lib.smartcontracts import EthereumSC, MockSC
 
@@ -36,9 +37,11 @@ def test_cdeg(keysize):
 def test_dgmitlp_too_few_coins():
     coins = [0]
     coins_acceptable = 1
-    sc = namedtuple("mock_sc", ["coins"])(coins)
+    sc = MockSC().initiate(coins, 0, [0], [0], 1)
     dgmitlp = DGMITLP()
-    assert [(None, False)] == list(dgmitlp.solve(sc, Server_Info(1), (), [], coins_acceptable))
+    with pytest.raises(CoinException):
+        for _ in dgmitlp.solve(sc, Server_Info(1), (), [], coins_acceptable):  # type: ignore
+            ...
 
 
 @pytest.mark.parametrize("keysize", [1024, 2048])
@@ -55,7 +58,9 @@ def test_dgmitlp_helper_too_slow(keysize):
     pk, _ = dgmitlp.helper_setup(intervals, SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
     _, sc = dgmitlp.server_delegation(intervals, best_helper, coins, start_time, helper_id, keysize=keysize)
     dgmitlp.gmitlp = Mock(solve=Mock())
-    assert [(None, False)] == list(dgmitlp.solve(sc, weaker_helper, pk, [], coins_acceptable))
+    with pytest.raises(UpperBoundException):
+        for _ in dgmitlp.solve(sc, weaker_helper, pk, [], coins_acceptable):
+            ...
     assert dgmitlp.gmitlp.solve.call_count == 0
 
 
@@ -89,7 +94,7 @@ def test_dgmitlp_helper_good_enough(keysize):
 )
 @pytest.mark.parametrize("sc", [MockSC(), EthereumSC(contract_path=str(Path("contracts/SmartContract.sol").resolve()))])
 def test_dgmitlp(keysize, messages, intervals, sc):
-    squarigns_per_second_helper = 1
+    squarings_per_second_helper = 1
 
     coins = [1] * len(intervals)
     coins_acceptable = 1
@@ -126,7 +131,7 @@ def test_dgmitlp(keysize, messages, intervals, sc):
 
     # TPH
     sc.switch_to_account(client_helper_id)
-    pk, sk = dgmitlp.helper_setup(intervals, squarigns_per_second_helper)
+    pk, sk = dgmitlp.helper_setup(intervals, squarings_per_second_helper)
     puzz_list = dgmitlp.helper_generate(encrypted_messages, pk, sk, start_time, sc)
 
     # TPH'

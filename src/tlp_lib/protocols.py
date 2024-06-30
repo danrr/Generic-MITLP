@@ -16,7 +16,8 @@ type TLP_Message = bytes
 type TLP_Messages = list[TLP_Message]
 type TLP_Digest = bytes
 type TLP_Digests = list[TLP_Digest]
-type TLP_Key = Tuple[TLP_Public, TLP_Secret]
+type TLP_Key = tuple[TLP_Public, TLP_Secret]
+type TLP_Interval = int
 
 
 class TLPInterface(Protocol):
@@ -29,7 +30,7 @@ class TLPInterface(Protocol):
         random: Optional[RandGenModN] = None,
     ): ...
 
-    def setup(self, interval: int, squarings_per_second: int, keysize: int = 2048) -> TLP_Key: ...
+    def setup(self, interval: TLP_Interval, squarings_per_second: int, keysize: int = 2048) -> TLP_Key: ...
 
     def generate(self, pk: TLP_Public_Input, a: int, message: TLP_Message) -> TLP_Puzzle: ...
 
@@ -53,6 +54,8 @@ GMITLP_Public_Input = GMITLP_Public | tuple[MITLP_Auxiliary_Info, int, Sequence[
 GMITLP_Secret = NamedTuple("GMITLP_Secret", [("a", Sequence[int]), ("r_bin", Sequence[bytes]), ("d", Sequence[bytes])])
 GMITLP_Secret_Input = GMITLP_Secret | tuple[Sequence[int], Sequence[bytes], Sequence[bytes]]
 
+type GMITLP_Intervals = list[TLP_Interval]
+
 
 class GMITLPInterface(Protocol):
     def __init__(
@@ -66,7 +69,7 @@ class GMITLPInterface(Protocol):
     ): ...
 
     def setup(
-        self, intervals: Sequence[int], squaring_per_second: int, keysize: int = 2048
+        self, intervals: GMITLP_Intervals, squaring_per_second: int, keysize: int = 2048
     ) -> tuple[GMITLP_Public, GMITLP_Secret]: ...
 
     def generate(
@@ -84,3 +87,5 @@ GMITLP_type = type[GMITLPInterface]
 
 Server_Info = NamedTuple("Aux_server_info", [("squarings", int)])
 type GMITLP_Client_Key = int
+type GMITLP_Encrypted_Message = bytes
+type GMITLP_Encrypted_Messages = list[GMITLP_Encrypted_Message]

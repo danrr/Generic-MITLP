@@ -24,6 +24,7 @@ target-version = ["py311"]
 line_length = 120
 
 [tool.basedpyright]
+exclude = [".venv", "typings/eth_tester"]
 typeCheckingMode = "standard"
 reportMissingTypeStubs = true
 verboseOutput = true

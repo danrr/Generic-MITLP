@@ -1,20 +1,20 @@
 import functools
+from pathlib import Path
+from typing import Optional
 
 from eth_tester import EthereumTester, PyEVMBackend
 from solcx import compile_files, install_solc
 from web3 import EthereumTesterProvider, Web3
 
-from tlp_lib.smartcontracts.SCInterface import SCInterface
-
 SOLC_VERSION = "0.8.0"
 CONTRACT_NAME = "SmartContract"
-CONTRACT_PATH = "../../contracts/SmartContract.sol"
+CONTRACT_PATH = str(Path("../../../contracts/SmartContract.sol").resolve())
 
 
-class EthereumSC(SCInterface):
-    web3 = None
+class EthereumSC:
+    web3: Web3
 
-    def __init__(self, account=None, web3=None, contract_path=CONTRACT_PATH):
+    def __init__(self, account=None, web3: Optional[Web3] = None, contract_path: str = CONTRACT_PATH):
         print("Initiating EthereumSC")
         self._initiate_network(web3)
         print("Network initiated")
@@ -151,10 +151,10 @@ class EthereumSC(SCInterface):
 
         tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
 
-        self.contract = self.web3.eth.contract(address=tx_receipt.contractAddress, abi=abi)
-        return tx_receipt.contractAddress
+        self.contract = self.web3.eth.contract(address=tx_receipt["contractAddress"], abi=abi)
+        return tx_receipt["contractAddress"]
 
-    def _initiate_network(self, web3=None):
+    def _initiate_network(self, web3: Optional[Web3] = None):
         """
         Initiates the network connection
         @:param provider: The provider to use for the connection
@@ -173,4 +173,4 @@ class EthereumSC(SCInterface):
         props = {"from": self.account}
 
         tx_hash = tx.transact(props)
-        return self.web3.eth.wait_for_transaction_receipt(tx_hash).status == 1
+        return self.web3.eth.wait_for_transaction_receipt(tx_hash)["status"] == 1

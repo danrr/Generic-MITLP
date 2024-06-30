@@ -1,19 +1,28 @@
 from datetime import datetime
+from typing import Self
 
-from tlp_lib.smartcontracts.SCInterface import SCInterface
+from tlp_lib.protocols import GMITLP_Encrypted_Message, TLP_Digest, TLP_Digests
+from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solutions, SC_UpperBounds
 
 
-class MockSC(SCInterface):
-    commitments = None
-    start_time = None
-    upper_bounds = None
-    coins = None
-    solutions = None
-    initial_timestamp = None
-    helper_id = None
-    extra_time = None
+class MockSC:
+    commitments: TLP_Digests
+    start_time: int
+    upper_bounds: SC_UpperBounds
+    coins: SC_Coins
+    solutions: SC_Solutions
+    initial_timestamp: int
+    helper_id: int
+    extra_time: SC_ExtraTime
 
-    def initiate(self, coins, start_time, extra_time, upper_bounds, helper_id):
+    def initiate(
+        self,
+        coins: SC_Coins,
+        start_time: int,
+        extra_time: SC_ExtraTime,
+        upper_bounds: SC_UpperBounds,
+        helper_id: int,
+    ) -> Self:
         self.coins = coins
         self.start_time = start_time
         self.extra_time = extra_time
@@ -24,19 +33,18 @@ class MockSC(SCInterface):
         self.initial_timestamp = int(datetime.now().timestamp())
         return self
 
-    def add_solution(self, solution, witness):
+    def add_solution(self, solution: GMITLP_Encrypted_Message, witness: TLP_Digest):
         time = int(datetime.now().timestamp())
         self.solutions.append((solution, witness, time))
-        return time
 
-    def get_message_at(self, i):
+    def get_message_at(self, i: int, /) -> GMITLP_Encrypted_Message:
         return self.solutions[i][0]
 
-    def switch_to_account(self, account):
+    def switch_to_account(self, account: int):
         pass
 
-    def pay(self, i):
+    def pay(self, i: int, /):
         print(f"paying TPH' {self.coins[i]}")
 
-    def pay_back(self, i):
+    def pay_back(self, i: int, /):
         print(f"paying TPH' back {self.coins[i]}")

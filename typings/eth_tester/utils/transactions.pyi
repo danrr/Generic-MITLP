@@ -1,0 +1,9 @@
+from collections.abc import Generator
+
+from _typeshed import Incomplete
+
+VALID_TRANSACTION_PARAMS: Incomplete
+
+def extract_valid_transaction_params(transaction_params): ...
+def extract_transaction_type(transaction): ...
+def remove_matching_transaction_from_list(transaction_list, transaction) -> Generator[Incomplete, None, None]: ...
