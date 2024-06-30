@@ -1,9 +1,8 @@
-from collections import namedtuple
+from consts import KEYSIZE, MESSAGE, SEED, SQUARINGS_PER_SEC
+from utils import add_times, get_size, timer, timer_with_output
 
-from lib import TLP, MITLP, GMITLP, DGMITLP
-from utils import timer, get_size, add_times, timer_with_output
-from consts import SQUARINGS_PER_SEC, SEED, KEYSIZE, MESSAGE
-
+from tlp_lib import DGMITLP, GMITLP, MITLP, TLP
+from tlp_lib.protocols import Server_Info
 
 # todo: store in some format that can be output to csv
 # todo: pyplot
@@ -21,14 +20,14 @@ def benchmark_time_tlp(messages, distinct_intervals, solve):
             seconds += distinct_intervals[i]
             pk, sk = tlp.setup(seconds, SQUARINGS_PER_SEC[KEYSIZE], KEYSIZE)
             if solve:
-                puzzles.append((pk, tlp.generate(pk, sk, m)))
+                puzzles.append((pk, tlp.generate(pk, sk.a, m)))
 
     time = timer(tlp_setup_and_generate)
     print("TLP setup and generate", time)
 
     (n, _, _), (p, q, phi_n, _) = tlp.setup(1, SQUARINGS_PER_SEC[KEYSIZE], KEYSIZE)
 
-    def gen_modulus(keysize):
+    def gen_modulus(*, keysize: int):
         # keysize isn't used, as KEYSIZE constant affects instantiation above
         return n, p, q, phi_n
 
@@ -38,7 +37,7 @@ def benchmark_time_tlp(messages, distinct_intervals, solve):
         for i, m in enumerate(messages):
             seconds += distinct_intervals[i]
             pk, sk = tlp.setup(seconds, SQUARINGS_PER_SEC[KEYSIZE], KEYSIZE)
-            tlp.generate(pk, sk, m)
+            tlp.generate(pk, sk.a, m)
 
     time_fixed_n = timer(tlp_setup_and_generate_fixed_n)
     print("TLP setup and generate fixed n", time_fixed_n)
@@ -57,8 +56,9 @@ def benchmark_time_tlp(messages, distinct_intervals, solve):
 def benchmark_time_mitlp(messages, instances, fixed_interval, solve):
     mitlp = MITLP(seed=SEED)
 
-    time_setup, (pk, sk) = timer_with_output(mitlp.setup, instances, fixed_interval, SQUARINGS_PER_SEC[KEYSIZE],
-                                             KEYSIZE)
+    time_setup, (pk, sk) = timer_with_output(
+        mitlp.setup, instances, fixed_interval, SQUARINGS_PER_SEC[KEYSIZE], KEYSIZE
+    )
     print("MITLP setup", time_setup)
 
     time_generate, (puzz_list, hash_list) = timer_with_output(mitlp.generate, messages, pk, sk)
@@ -123,37 +123,45 @@ def benchmark_time_gmitlp(messages, distinct_intervals, solve):
     print("GMITLP total", add_times(time_setup, time_generate, time_solve, time_verify))
 
 
-Server_info = namedtuple("Aux_server_info", ["squarings"])
-
-
 def benchmark_time_dgmitlp(messages, distinct_intervals, solve):
     dgmitlp = DGMITLP(seed=SEED)
 
     time_client_setup, csk = timer_with_output(dgmitlp.client_setup)
     print("DGMITLP client setup", time_client_setup)
 
-    time_client_delegation, (encrypted_messages, start_time) = timer_with_output(dgmitlp.client_delegation, messages,
-                                                                                 csk)
+    time_client_delegation, (encrypted_messages, start_time) = timer_with_output(
+        dgmitlp.client_delegation, messages, csk
+    )
     print("DGMITLP client delegation", time_client_delegation)
 
     coins = 1
-    server_info = Server_info(1)
-    time_server_delegation, (extra_time, sc) = timer_with_output(dgmitlp.server_delegation, distinct_intervals,
-                                                                 server_info, coins, start_time, 1, None, KEYSIZE)
+    server_info = Server_Info(1)
+    time_server_delegation, (extra_time, sc) = timer_with_output(
+        dgmitlp.server_delegation, distinct_intervals, server_info, coins, start_time, 1, None, KEYSIZE
+    )
     print("DGMITLP server delegation", time_server_delegation)
 
-    time_helper_setup, (pk, sk) = timer_with_output(dgmitlp.helper_setup, distinct_intervals,
-                                                    SQUARINGS_PER_SEC[KEYSIZE], KEYSIZE)
+    time_helper_setup, (pk, sk) = timer_with_output(
+        dgmitlp.helper_setup, distinct_intervals, SQUARINGS_PER_SEC[KEYSIZE], KEYSIZE
+    )
     print("DGMITLP helper setup", time_helper_setup)
 
-    time_helper_generate, puzz_list = timer_with_output(dgmitlp.helper_generate, encrypted_messages, pk, sk, start_time,
-                                                        sc)
+    time_helper_generate, puzz_list = timer_with_output(
+        dgmitlp.helper_generate, encrypted_messages, pk, sk, start_time, sc
+    )
     print("DGMITLP helper generate", time_helper_generate)
 
     if not solve:
-        print("DGMITLP total",
-              add_times(time_client_setup, time_client_delegation, time_server_delegation, time_helper_setup,
-                        time_helper_generate))
+        print(
+            "DGMITLP total",
+            add_times(
+                time_client_setup,
+                time_client_delegation,
+                time_server_delegation,
+                time_helper_setup,
+                time_helper_generate,
+            ),
+        )
         return
 
     coins_acceptable = 1
@@ -169,7 +177,7 @@ def benchmark_time_dgmitlp(messages, distinct_intervals, solve):
     print("DGMITLP helper solve", time_solve)
 
     def dgmitlp_register():
-        for (m_, d) in sol:
+        for m_, d in sol:
             dgmitlp.register(sc, m_, d)
 
     time_register = timer(dgmitlp_register)
@@ -188,9 +196,20 @@ def benchmark_time_dgmitlp(messages, distinct_intervals, solve):
     time_retrieve = timer(dgmitlp_retrieve)
     print("DGMITLP retrieve", time_retrieve)
 
-    print("DGMITLP total",
-          add_times(time_client_setup, time_client_delegation, time_server_delegation, time_helper_setup,
-                    time_helper_generate, time_solve, time_register, time_verify, time_retrieve))
+    print(
+        "DGMITLP total",
+        add_times(
+            time_client_setup,
+            time_client_delegation,
+            time_server_delegation,
+            time_helper_setup,
+            time_helper_generate,
+            time_solve,
+            time_register,
+            time_verify,
+            time_retrieve,
+        ),
+    )
 
 
 def get_size_of_output(output):
@@ -208,17 +227,24 @@ def get_size_of_output(output):
 
 
 def benchmark_size(instances, fixed_interval):
-    headings = ('Size of aux', 'Size of n', 'Size of t', 'Size of r', 'Size of a', 'Size of d', 'Size of public key',
-                'Size of secret key', 'Total size')
+    headings = (
+        "Size of aux",
+        "Size of n",
+        "Size of t",
+        "Size of r",
+        "Size of a",
+        "Size of d",
+        "Size of public key",
+        "Size of secret key",
+        "Total size",
+    )
 
     mitlp = MITLP(seed=SEED)
     gmitlp = GMITLP(seed=SEED)
 
     distinct_intervals = [fixed_interval for _ in range(instances)]
-    mitlp_size = get_size_of_output(
-        mitlp.setup(instances, fixed_interval, SQUARINGS_PER_SEC[KEYSIZE], keysize=KEYSIZE))
-    gmitlp_size = get_size_of_output(
-        gmitlp.setup(distinct_intervals, SQUARINGS_PER_SEC[KEYSIZE], keysize=KEYSIZE))
+    mitlp_size = get_size_of_output(mitlp.setup(instances, fixed_interval, SQUARINGS_PER_SEC[KEYSIZE], keysize=KEYSIZE))
+    gmitlp_size = get_size_of_output(gmitlp.setup(distinct_intervals, SQUARINGS_PER_SEC[KEYSIZE], keysize=KEYSIZE))
     print(f"For {instances} instances of {fixed_interval} seconds each")
     print(f"{'TLP':20} {'MITLP': >20} {'GMITLP': >20} {'Difference': >20}")
     for heading, val1, val2 in zip(headings, mitlp_size, gmitlp_size):
@@ -239,8 +265,8 @@ def benchmark_time(instances, fixed_interval, solve):
     print()
 
 
-INSTANCES = [10 ** i for i in range(1, 3)]
-FIXED_INTERVALS = [10 ** i for i in range(0, 9)]
+INSTANCES = [10**i for i in range(1, 3)]
+FIXED_INTERVALS = [10**i for i in range(0, 9)]
 
 
 def benchmark(solve):

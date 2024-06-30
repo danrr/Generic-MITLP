@@ -1,29 +1,36 @@
+import math
+from collections import namedtuple
 from pathlib import Path
 from unittest.mock import Mock
 
-import math
-from collections import namedtuple
-
 import pytest
-from lib import DGMITLP, custom_extra_delay
-from lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
-from lib.smartcontracts import MockSC, EthereumSC
 
-Server_info = namedtuple("Aux_server_info", ["squarings"])
+from tlp_lib import DGMITLP, custom_extra_delay
+from tlp_lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
+from tlp_lib.protocols import Server_Info
+from tlp_lib.smartcontracts import EthereumSC, MockSC
 
 
-@pytest.mark.parametrize("keysize", [
-    1024,
-    2048
-])
+@pytest.mark.parametrize("keysize", [1024, 2048])
 def test_cdeg(keysize):
     minimum_delay = 10
 
-    assert math.isclose(0, custom_extra_delay(SQUARINGS_PER_SEC_UPPER_BOUND[keysize], minimum_delay,
-                                              Server_info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize])))
-    assert math.isclose(minimum_delay, custom_extra_delay(SQUARINGS_PER_SEC_UPPER_BOUND[keysize], minimum_delay,
-                                                          Server_info(
-                                                              squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize] // 2)))
+    assert math.isclose(
+        0,
+        custom_extra_delay(
+            SQUARINGS_PER_SEC_UPPER_BOUND[keysize],
+            minimum_delay,
+            Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize]),
+        ),
+    )
+    assert math.isclose(
+        minimum_delay,
+        custom_extra_delay(
+            SQUARINGS_PER_SEC_UPPER_BOUND[keysize],
+            minimum_delay,
+            Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize] // 2),
+        ),
+    )
 
 
 def test_dgmitlp_too_few_coins():
@@ -31,65 +38,56 @@ def test_dgmitlp_too_few_coins():
     coins_acceptable = 1
     sc = namedtuple("mock_sc", ["coins"])(coins)
     dgmitlp = DGMITLP()
-    assert (None, False) == dgmitlp.solve(sc, {}, (), [], coins_acceptable)
+    assert [(None, False)] == list(dgmitlp.solve(sc, Server_Info(1), (), [], coins_acceptable))
 
 
-@pytest.mark.parametrize("keysize", [
-    1024,
-    2048
-])
+@pytest.mark.parametrize("keysize", [1024, 2048])
 def test_dgmitlp_helper_too_slow(keysize):
     coins = [1, 1]
     coins_acceptable = 1
     intervals = [1, 2]
     start_time = 0
     helper_id = 1
-    best_helper = Server_info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
-    weaker_helper = Server_info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize] - 1)
+    best_helper = Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
+    weaker_helper = Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize] - 1)
 
     dgmitlp = DGMITLP()
     pk, _ = dgmitlp.helper_setup(intervals, SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
     _, sc = dgmitlp.server_delegation(intervals, best_helper, coins, start_time, helper_id, keysize=keysize)
     dgmitlp.gmitlp = Mock(solve=Mock())
-    assert (None, False) == dgmitlp.solve(sc, weaker_helper, pk, [], coins_acceptable)
+    assert [(None, False)] == list(dgmitlp.solve(sc, weaker_helper, pk, [], coins_acceptable))
     assert dgmitlp.gmitlp.solve.call_count == 0
 
 
-@pytest.mark.parametrize("keysize", [
-    1024,
-    2048
-])
-def test_dgmitlp_helper_good_enougjh(keysize):
+@pytest.mark.parametrize("keysize", [1024, 2048])
+def test_dgmitlp_helper_good_enough(keysize):
     coins = [1, 1]
     coins_acceptable = 1
     intervals = [1, 2]
     start_time = 0
     helper_id = 1
-    best_helper = Server_info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
-    weaker_helper = Server_info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize] - 1)
+    best_helper = Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
+    weaker_helper = Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize] - 1)
 
     dgmitlp = DGMITLP()
     pk, _ = dgmitlp.helper_setup(intervals, SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
     _, sc = dgmitlp.server_delegation(intervals, weaker_helper, coins, start_time, helper_id, keysize=keysize)
-    dgmitlp.gmitlp = Mock(solve=Mock(return_value="solved_puzzles"))
-    assert "solved_puzzles" == dgmitlp.solve(sc, best_helper, pk, [], coins_acceptable)
+    dgmitlp.gmitlp = Mock(solve=Mock(return_value=iter(["solved_puzzles"])))
+    assert ["solved_puzzles"] == list(dgmitlp.solve(sc, best_helper, pk, [], coins_acceptable))
     assert dgmitlp.gmitlp.solve.call_count == 1
 
 
-@pytest.mark.parametrize("keysize", [
-    1024,
-    2048
-])
-@pytest.mark.parametrize("messages, intervals", [
-    ([b""], [1]),
-    ([b"test1"], [1]),
-    ([b"test1", b"test2"], [1, 2]),
-    ([b"test1", b"test2", b"test1", b"test2"], [1, 2, 1, 2]),
-])
-@pytest.mark.parametrize("sc", [
-    MockSC(),
-    EthereumSC(contract_path=str(Path("contracts/SmartContract.sol").resolve()))
-])
+@pytest.mark.parametrize("keysize", [1024, 2048])
+@pytest.mark.parametrize(
+    "messages, intervals",
+    [
+        ([b""], [1]),
+        ([b"test1"], [1]),
+        ([b"test1", b"test2"], [1, 2]),
+        ([b"test1", b"test2", b"test1", b"test2"], [1, 2, 1, 2]),
+    ],
+)
+@pytest.mark.parametrize("sc", [MockSC(), EthereumSC(contract_path=str(Path("contracts/SmartContract.sol").resolve()))])
 def test_dgmitlp(keysize, messages, intervals, sc):
     squarigns_per_second_helper = 1
 
@@ -99,7 +97,7 @@ def test_dgmitlp(keysize, messages, intervals, sc):
     client_helper_id = 1
     server_id = 0
     server_helper_id = 2
-    server_info = Server_info(squarings=1)
+    server_info = Server_Info(squarings=1)
 
     helper_id = client_helper_id
 
@@ -116,9 +114,15 @@ def test_dgmitlp(keysize, messages, intervals, sc):
         helper_id = sc.account
     sc.switch_to_account(server_id)
 
-    extra_time, sc = dgmitlp.server_delegation(intervals, server_info, coins, start_time, helper_id,
-                                               squarings_upper_bound=SQUARINGS_PER_SEC_UPPER_BOUND[keysize],
-                                               keysize=keysize)
+    extra_time, sc = dgmitlp.server_delegation(
+        intervals,
+        server_info,
+        coins,
+        start_time,
+        helper_id,
+        squarings_upper_bound=SQUARINGS_PER_SEC_UPPER_BOUND[keysize],
+        keysize=keysize,
+    )
 
     # TPH
     sc.switch_to_account(client_helper_id)
@@ -128,7 +132,7 @@ def test_dgmitlp(keysize, messages, intervals, sc):
     # TPH'
     sc.switch_to_account(server_helper_id)
     s = dgmitlp.solve(sc, server_info, pk, puzz_list, coins_acceptable)
-    for (m_, d) in s:
+    for m_, d in s:
         dgmitlp.register(sc, m_, d)
 
     # server

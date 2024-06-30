@@ -1,24 +1,33 @@
-import functools
-from datetime import datetime
 from itertools import accumulate
 from operator import add
+from typing import Optional
 
-from lib import GMITLP
-from lib.smartcontracts import MockSC
-from lib.wrappers import Random, FernetWrapper
-
-from lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
+from tlp_lib import GMITLP
+from tlp_lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
+from tlp_lib.protocols import GMITLP_Client_Key, GMITLP_type, Server_Info, TLP_Messages
+from tlp_lib.smartcontracts import MockSC
+from tlp_lib.wrappers import FernetWrapper, Random
+from tlp_lib.wrappers.protocols import RandGen, SymEnc
 
 
 # Set fixed TOC = repeated squaring in Z_(p*q)
-def custom_extra_delay(squarings_upper_bound, seconds, aux):
+def custom_extra_delay(squarings_upper_bound: int, seconds: int, aux: Server_Info) -> float:
     squarings = aux.squarings
     assert squarings <= squarings_upper_bound
     return seconds * (squarings_upper_bound / squarings - 1)
 
 
 class DGMITLP:
-    def __init__(self, *, sym_enc=None, gmitlp=GMITLP, random=None, seed=None, SC=MockSC(), **kwargs):
+    def __init__(
+        self,
+        *,
+        gmitlp: GMITLP_type = GMITLP,
+        sym_enc: Optional[SymEnc] = None,
+        random: Optional[RandGen] = None,
+        seed: Optional[int] = None,
+        SC=MockSC(),
+        **kwargs,
+    ):
         if random is None:
             random = Random(seed=seed)
         self.random = random
@@ -28,32 +37,34 @@ class DGMITLP:
         self.gmitlp = gmitlp(seed=seed, random=self.random, sym_enc=self.sym_enc, **kwargs)
         self.SC = SC
 
-    def client_setup(self):
+    def client_setup(self) -> GMITLP_Client_Key:
         return self.sym_enc.generate_key()
 
-    def client_delegation(self, messages, csk):
+    def client_delegation(self, messages: TLP_Messages, csk: GMITLP_Client_Key):
         start_time = 0  # todo: allow for delays
         return [self.sym_enc.encrypt(csk, message) for message in messages], start_time
         # todo: send encrypted messages to TPH and start_time to TPH and S
 
-    def server_delegation(self, intervals, server_info, coins, start_time, helper_id, squarings_upper_bound=None,
-                          keysize=2048,
-                          cdeg=custom_extra_delay):
+    def server_delegation(
+        self,
+        intervals,
+        server_info,
+        coins,
+        start_time,
+        helper_id,
+        squarings_upper_bound=None,
+        keysize=2048,
+        cdeg=custom_extra_delay,
+    ):
         if squarings_upper_bound is None:
             squarings_upper_bound = SQUARINGS_PER_SEC_UPPER_BOUND[keysize]
 
         extra_time = [cdeg(squarings_upper_bound, interval, server_info) for interval in intervals]
-        # todo: integrate with an actual smart contract
-        upper_bounds = list(
-            accumulate(
-                [start_time] +
-                list(
-                    map(add, intervals, extra_time)
-                )
-            )
-        )[1:]
-        sc = self.SC.initiate(coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds,
-                              helper_id=helper_id)
+        upper_bounds = list(accumulate([start_time] + list(map(add, intervals, extra_time))))[1:]
+        sc = self.SC.initiate(
+            coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds, helper_id=helper_id
+        )
+
         return extra_time, sc
 
     def helper_setup(self, intervals, squaring_per_second, keysize=2048):
@@ -65,11 +76,12 @@ class DGMITLP:
         return puzz_list
         # todo: use start_time to send puzz_list to TPH
 
-    def solve(self, sc, server_info, pk, puzz, coins_acceptable):
+    def solve(self, sc, server_info: Server_Info, pk, puzz, coins_acceptable):
         coins = sc.coins
         for coin in coins:
             if coin < coins_acceptable:
-                return None, False
+                yield None, False
+                return
 
         _, _, t, _ = pk
         upper_bounds = sc.upper_bounds
@@ -81,10 +93,11 @@ class DGMITLP:
             maximum_time = upper_bound - prev_bound
 
             if server_time > maximum_time:
-                return None, False
+                yield None, False
+                return
             prev_bound = upper_bound
 
-        return self.gmitlp.solve(pk, puzz)
+        yield from self.gmitlp.solve(pk, puzz)
 
     def register(self, sc, solution, commitment):
         return sc.add_solution(solution, commitment)
@@ -92,7 +105,7 @@ class DGMITLP:
     def verify(self, sc, i):
         solution, witness, time_solved = sc.solutions[i]
         commitment = sc.commitments[i]
-        time_to_solve = (time_solved - sc.initial_timestamp)
+        time_to_solve = time_solved - sc.initial_timestamp
         upper_bound = sc.upper_bounds[i]
         assert time_to_solve < upper_bound
         self.gmitlp.verify(solution, witness, commitment)

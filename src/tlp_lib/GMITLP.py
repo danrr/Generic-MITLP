@@ -1,20 +1,47 @@
-from gmpy2 import gmpy2
+from collections.abc import Generator, Sequence
+from typing import Optional
 
-from lib import TLP
-from lib.wrappers import SHA512Wrapper, Random
+import gmpy2
+
+from tlp_lib import TLP
+from tlp_lib.protocols import (
+    GMITLP_Public,
+    GMITLP_Public_Input,
+    GMITLP_Secret,
+    GMITLP_Secret_Input,
+    MITLP_Auxiliary_Info,
+    TLP_Digest,
+    TLP_Digests,
+    TLP_Message,
+    TLP_Messages,
+    TLP_Puzzles,
+    TLPInterface,
+)
+from tlp_lib.wrappers import Random, SHA512Wrapper
+from tlp_lib.wrappers.protocols import HashFunc, RandGen
 
 COMMITMENT_LENGTH = 128  # hard coded for hash commitments
 
 
 class GMITLP:
-    def __init__(self, *, tlp=TLP, hash_func=SHA512Wrapper, random=None, seed=None, **kwargs):
+    def __init__(
+        self,
+        *,
+        tlp: type[TLPInterface] = TLP,
+        hash_func: HashFunc = SHA512Wrapper,
+        random: Optional[RandGen] = None,
+        seed: Optional[int] = None,
+        **kwargs,
+    ):
         if random is None:
             random = Random(seed=seed)
         self.random = random
         self.tlp = tlp(seed=seed, random=self.random, **kwargs)
         self.hash = hash_func
 
-    def setup(self, intervals, squaring_per_second, keysize=2048):
+    def setup(
+        self, intervals: Sequence[int], squaring_per_second: int, keysize: int = 2048
+    ) -> tuple[GMITLP_Public, GMITLP_Secret]:
         tlp_pk, tlp_sk = self.tlp.setup(1, 1, keysize)
         n, _, r_0 = tlp_pk
         _, _, phi_n, _ = tlp_sk
@@ -32,34 +59,38 @@ class GMITLP:
         len_bytes = COMMITMENT_LENGTH // 8
         d = [self.random.gen_random_bytes(len_bytes) for _ in intervals]
 
-        aux = (self.hash.name, len_bytes, len_r)
+        aux = MITLP_Auxiliary_Info(self.hash.name, len_bytes, len_r)
 
-        return (aux, n, t, r_0), (a, r_bin, d)
+        return GMITLP_Public(aux, n, t, r_0), GMITLP_Secret(a, r_bin, d)
 
-    def generate(self, m, pk, sk):
+    def generate(
+        self, m: TLP_Messages, pk: GMITLP_Public_Input, sk: GMITLP_Secret_Input
+    ) -> tuple[TLP_Puzzles, TLP_Digests]:
         # todo: generator function?
         aux, n, t, _ = pk
         a, r, d = sk
         z = len(m)
         if len(r) != z or len(d) != z:
-            raise ValueError('length of m, r, and d must be equal')
+            raise ValueError("length of m, r, and d must be equal")
 
-        hash_list = [0] * z
-        puzz_list = [(None, None)] * z
+        hash_list: TLP_Digests = []
+        puzz_list: TLP_Puzzles = []
         for i in range(z):
-            pk_i = n, t[i], gmpy2.mpz.from_bytes(r[i])
+            pk_i = (n, t[i], gmpy2.mpz.from_bytes(r[i]))
 
             message = m[i] + d[i]
-            hash_list[i] = self.hash.digest(message)
+            hash_list.append(self.hash.digest(message))
 
             if i != z - 1:
                 message += r[i + 1]
-            c_k, c_m = self.tlp.generate(pk_i, (None, None, None, a[i]), message)
-            puzz_list[i] = (c_k, c_m)
+            puzzle = self.tlp.generate(pk_i, a[i], message)
+            puzz_list.append(puzzle)
 
         return puzz_list, hash_list
 
-    def solve(self, pk, puzz):
+    def solve(
+        self, pk: GMITLP_Public_Input, puzz: TLP_Puzzles
+    ) -> Generator[tuple[TLP_Message, TLP_Digest], None, None]:
         aux, n, t, r_i = pk
         _, len_d, len_r = aux
         z = len(puzz)
@@ -79,5 +110,5 @@ class GMITLP:
 
             yield m_i, d_i
 
-    def verify(self, m, d, h):
+    def verify(self, m: TLP_Message, d: bytes, h: TLP_Digest) -> None:
         assert h == self.hash.digest(m + d)

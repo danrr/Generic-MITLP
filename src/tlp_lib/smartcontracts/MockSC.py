@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from lib.smartcontracts.SCInterface import SCInterface
+from tlp_lib.smartcontracts.SCInterface import SCInterface
 
 
 class MockSC(SCInterface):

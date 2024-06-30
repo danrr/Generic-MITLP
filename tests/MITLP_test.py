@@ -1,17 +1,19 @@
 import pytest
-from lib import MITLP
 
-@pytest.mark.parametrize("keysize", [
-    1024,
-    2048
-])
-@pytest.mark.parametrize("messages", [
-    [b""],
-    [b"t"],
-    [b"test"],
-    [b"test1", b"test2"],
-    [b"test1", b"test2", b"test2", b"test2", b"test2"],
-])
+from tlp_lib import MITLP
+
+
+@pytest.mark.parametrize("keysize", [1024, 2048])
+@pytest.mark.parametrize(
+    "messages",
+    [
+        [b""],
+        [b"t"],
+        [b"test"],
+        [b"test1", b"test2"],
+        [b"test1", b"test2", b"test2", b"test2", b"test2"],
+    ],
+)
 def test_mitlp(keysize, messages):
     mitlp = MITLP()
     z = len(messages)

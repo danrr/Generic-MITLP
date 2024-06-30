@@ -1,10 +1,10 @@
 import functools
 
 from eth_tester import EthereumTester, PyEVMBackend
-from solcx import install_solc, compile_files
+from solcx import compile_files, install_solc
 from web3 import EthereumTesterProvider, Web3
 
-from lib.smartcontracts.SCInterface import SCInterface
+from tlp_lib.smartcontracts.SCInterface import SCInterface
 
 SOLC_VERSION = "0.8.0"
 CONTRACT_NAME = "SmartContract"
@@ -31,9 +31,7 @@ class EthereumSC(SCInterface):
 
     @commitments.setter
     def commitments(self, commitments):
-        if not self._has_succeded(
-                self._contract.functions.setCommitments(commitments)
-        ):
+        if not self._has_succeded(self._contract.functions.setCommitments(commitments)):
             raise RuntimeError("Commitments were not set correctly")
 
     @property
@@ -62,12 +60,13 @@ class EthereumSC(SCInterface):
 
     def initiate(self, coins, start_time, extra_time, upper_bounds, helper_id):
         """
-             Deploys the contract to the network and deposit the coins into the contract
+        Deploys the contract to the network and deposit the coins into the contract
         """
 
         (abi, sc_bytecode) = self._compile_contract()
-        contract_address = self._deploy_contract(sc_bytecode, abi, coins, start_time, extra_time, upper_bounds,
-                                                 helper_id)
+        contract_address = self._deploy_contract(
+            sc_bytecode, abi, coins, start_time, extra_time, upper_bounds, helper_id
+        )
         print("Deployed Contract Successfully: ", contract_address)
         return self
 
@@ -76,24 +75,18 @@ class EthereumSC(SCInterface):
         self.contract = self.web3.eth.contract(address=contract_address, abi=abi)
 
     def add_solution(self, solution, witness):
-        if not self._has_succeded(
-                self._contract.functions.addSolution(solution, witness)
-        ):
+        if not self._has_succeded(self._contract.functions.addSolution(solution, witness)):
             raise RuntimeError("Solution was not added correctly")
 
     def get_message_at(self, i):
         return self._contract.functions.getSolutionAt(i).call()
 
     def pay(self, i):
-        if not self._has_succeded(
-                self._contract.functions.pay(i)
-        ):
+        if not self._has_succeded(self._contract.functions.pay(i)):
             raise RuntimeError("Payout was not successful")
 
     def pay_back(self, i):
-        if not self._has_succeded(
-                self._contract.functions.payBack(i)
-        ):
+        if not self._has_succeded(self._contract.functions.payBack(i)):
             raise RuntimeError("Payback was not successful")
 
     # Private Properties #
@@ -127,7 +120,7 @@ class EthereumSC(SCInterface):
 
     def _compile_contract(self):
         """
-            Loads in the ABI of the EDTLP contract
+        Loads in the ABI of the EDTLP contract
         """
 
         install_solc(SOLC_VERSION)
@@ -148,19 +141,13 @@ class EthereumSC(SCInterface):
 
     def _deploy_contract(self, bytecode, abi, coins, start_time, extra_times, upper_bounds, helper_id):
         """
-            Deploys the contract to the network
+        Deploys the contract to the network
         """
         contract = self.web3.eth.contract(abi=abi, bytecode=bytecode)
 
         tx_hash = contract.constructor(
-            coins,
-            start_time,
-            list(map(int, extra_times)),
-            list(map(int, upper_bounds)),
-            helper_id
-        ).transact(
-            {"from": self.account, "value": functools.reduce(lambda x, y: x + y, coins)}
-        )
+            coins, start_time, list(map(int, extra_times)), list(map(int, upper_bounds)), helper_id
+        ).transact({"from": self.account, "value": functools.reduce(lambda x, y: x + y, coins)})
 
         tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -169,9 +156,9 @@ class EthereumSC(SCInterface):
 
     def _initiate_network(self, web3=None):
         """
-            Initiates the network connection
-            @:param provider: The provider to use for the connection
-            If no provider is given, use the `EthereumTesterProvider` which runs a local testnet
+        Initiates the network connection
+        @:param provider: The provider to use for the connection
+        If no provider is given, use the `EthereumTesterProvider` which runs a local testnet
         """
         #
         if web3 is None:
