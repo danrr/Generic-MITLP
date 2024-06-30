@@ -1,10 +1,10 @@
 from typing import Optional
 
-from gmpy2 import mpz, powmod
+import gmpy2
 
-from lib.protocols import TLP_Message, TLP_Public, TLP_Public_Input, TLP_Puzzle, TLP_Secret, TLP_Secret_Input
-from lib.wrappers import FernetWrapper, Random, RsaWrapper, SeededRSA
-from lib.wrappers.protocols import RandGenModN, RSAKeyGen, SymEnc
+from tlp_lib.protocols import TLP_Key, TLP_Message, TLP_Public, TLP_Public_Input, TLP_Puzzle, TLP_Secret
+from tlp_lib.wrappers import FernetWrapper, Random, SeededRSA, rsa_gen_key
+from tlp_lib.wrappers.protocols import RandGenModN, RSAKeyGen, SymEnc
 
 
 class TLP:
@@ -23,25 +23,24 @@ class TLP:
             if seed is not None:
                 gen_modulus = SeededRSA(seed=seed).gen_key
             else:
-                gen_modulus = RsaWrapper.gen_key
+                gen_modulus = rsa_gen_key
         self.gen_modulus = gen_modulus
         if random is None:
             random = Random(seed=seed)
         self.gen_random_generator = random.gen_random_generator_mod_n
 
-    def setup(self, interval: int, squarings_per_second: int, keysize: int = 2048) -> tuple[TLP_Public, TLP_Secret]:
+    def setup(self, interval: int, squarings_per_second: int, keysize: int = 2048) -> TLP_Key:
         n, p, q, phi_n = self.gen_modulus(keysize=keysize)
         r = self.gen_random_generator(n)
-        t = mpz(interval) * squarings_per_second
-        a = powmod(2, t, phi_n)
+        t = gmpy2.mpz(interval) * squarings_per_second
+        a = gmpy2.powmod(2, t, phi_n)
         return TLP_Public(n, t, r), TLP_Secret(p, q, phi_n, a)
 
-    def generate(self, pk: TLP_Public_Input, sk: TLP_Secret_Input, message: TLP_Message) -> TLP_Puzzle:
+    def generate(self, pk: TLP_Public_Input, a: int, message: TLP_Message) -> TLP_Puzzle:
         n, t, r = pk
-        _, _, _, a = sk
 
         k = self.sym_enc.generate_key()
-        b = powmod(r, a, n)
+        b = gmpy2.powmod(r, a, n)
         encrypted_message = self.sym_enc.encrypt(k, message)
         encrypted_key = int((k + b) % n)
         return TLP_Puzzle(encrypted_key, encrypted_message)

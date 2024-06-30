@@ -3,14 +3,11 @@ import sys
 import timeit
 from operator import add
 
-from consts import REPEAT, NUMBER
+from consts import NUMBER, REPEAT
 
 
 def timer(f, *args):
-    return timeit.Timer(functools.partial(f, *args)).repeat(
-        repeat=REPEAT,
-        number=NUMBER
-    )
+    return timeit.Timer(functools.partial(f, *args)).repeat(repeat=REPEAT, number=NUMBER)
 
 
 def timer_with_output(f, *args):
@@ -20,15 +17,12 @@ def timer_with_output(f, *args):
         output.clear()
         output.append(f(*args))
 
-    return [timeit.Timer(func).repeat(
-        repeat=REPEAT,
-        number=NUMBER
-    ), output[0]]
+    return [timeit.Timer(func).repeat(repeat=REPEAT, number=NUMBER), output[0]]
 
 
 def get_size(x):
     size = sys.getsizeof(x)
-    if hasattr(x, '__iter__') and not isinstance(x, (str, bytes, bytearray)):
+    if hasattr(x, "__iter__") and not isinstance(x, (str, bytes, bytearray)):
         for y in x:
             size += get_size(y)
     return size

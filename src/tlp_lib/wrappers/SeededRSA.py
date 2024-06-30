@@ -1,4 +1,4 @@
-from lib.wrappers.Random import Random
+from tlp_lib.wrappers.Random import Random
 
 
 class SeededRSA:

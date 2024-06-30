@@ -1,16 +1,27 @@
-from typing import NamedTuple, Optional
-from collections.abc import Sequence
+from collections.abc import Generator
+from typing import Optional
 
-from gmpy2 import gmpy2
+import gmpy2
 
-from lib import TLP
-from lib.protocols import TLP_Message, TLP_type, TLPInterface
-from lib.wrappers import Random, SHA512Wrapper
-from lib.wrappers.protocols import HashFunc, RandGen
+from tlp_lib import TLP
+from tlp_lib.protocols import (
+    MITLP_Auxiliary_Info,
+    MITLP_Public,
+    MITLP_Public_Input,
+    MITLP_Secret,
+    MITLP_Secret_Input,
+    TLP_Digest,
+    TLP_Digests,
+    TLP_Message,
+    TLP_Messages,
+    TLP_Puzzle,
+    TLP_Puzzles,
+    TLP_type,
+)
+from tlp_lib.wrappers import Random, SHA512Wrapper
+from tlp_lib.wrappers.protocols import HashFunc, RandGen
 
 COMMITMENT_LENGTH = 128  # hard coded for hash commitments
-
-MITLP_Auxiliary_Info = NamedTuple("MITLP_Auxiliary_Info", [("hash_name", str), ("len_commitment", int), ("len_r", int)])
 
 
 class MITLP:
@@ -29,7 +40,9 @@ class MITLP:
         self.tlp = tlp(seed=seed, random=self.random, **kwargs)
         self.hash = hash_func
 
-    def setup(self, z: int, interval: int, squaring_per_second: int, keysize: int = 2048):
+    def setup(
+        self, z: int, interval: int, squaring_per_second: int, keysize: int = 2048
+    ) -> tuple[MITLP_Public, MITLP_Secret]:
         if z < 1:
             raise ValueError("z must be greater than 0")
 
@@ -45,9 +58,11 @@ class MITLP:
 
         aux = MITLP_Auxiliary_Info(self.hash.name, len_commitment, len_r)
 
-        return (aux, n, t, r_0), (a, r_bin, d)
+        return MITLP_Public(aux, n, t, r_0), MITLP_Secret(a, r_bin, d)
 
-    def generate(self, m: Sequence[TLP_Message], pk, sk):
+    def generate(
+        self, m: TLP_Messages, pk: MITLP_Public_Input, sk: MITLP_Secret_Input
+    ) -> tuple[TLP_Puzzles, TLP_Digests]:
         # todo: generator function?
         aux, n, t, _ = pk
         a, r, d = sk
@@ -55,22 +70,22 @@ class MITLP:
         if len(r) != z or len(d) != z:
             raise ValueError("length of m, r, and d must be equal")
 
-        hash_list = [(0, b"")] * z
-        puzz_list = [(None, None)] * z
+        hash_list: TLP_Digests = []
+        puzz_list: TLP_Puzzles = []
         for i in range(z):
             pk_i = n, t, gmpy2.mpz.from_bytes(r[i])
 
             message = m[i] + d[i]
-            hash_list[i] = self.hash.digest(message)
+            hash_list.append(self.hash.digest(message))
 
             if i != z - 1:
                 message += r[i + 1]
-            c_k, c_m = self.tlp.generate(pk_i, (None, None, None, a), message)
-            puzz_list[i] = (c_k, c_m)
+            puzzle = self.tlp.generate(pk_i, a, message)
+            puzz_list.append(puzzle)
 
         return puzz_list, hash_list
 
-    def solve(self, pk, puzz):
+    def solve(self, pk: MITLP_Public_Input, puzz: TLP_Puzzles) -> Generator[tuple[TLP_Message, TLP_Digest], None, None]:
         aux, n, t, r_i = pk
         _, len_d, len_r = aux
         z = len(puzz)
@@ -90,5 +105,5 @@ class MITLP:
 
             yield m_i, d_i
 
-    def verify(self, m, d, h):
+    def verify(self, m: TLP_Message, d: bytes, h: TLP_Digest) -> None:
         assert h == self.hash.digest(m + d)
