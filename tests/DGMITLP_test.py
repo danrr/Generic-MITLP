@@ -143,6 +143,7 @@ def test_dgmitlp(keysize, messages, intervals, sc):
     # server
     sc.switch_to_account(server_id)
     for i, message in enumerate(messages):
+        dgmitlp.verify(sc, i)
         dgmitlp.pay(sc, i)
         m = dgmitlp.retrieve(sc, csk, i)
         assert m == message
