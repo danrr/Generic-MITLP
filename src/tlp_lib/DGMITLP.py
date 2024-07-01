@@ -11,6 +11,7 @@ from tlp_lib.protocols import (
     GMITLP_Encrypted_Messages,
     GMITLP_Intervals,
     GMITLP_Public_Input,
+    GMITLP_Secret_Input,
     GMITLP_type,
     Server_Info,
     TLP_Digest,
@@ -94,7 +95,14 @@ class DGMITLP:
     def helper_setup(self, intervals: GMITLP_Intervals, squaring_per_second: int, keysize: int = 2048):
         return self.gmitlp.setup(intervals, squaring_per_second, keysize=keysize)
 
-    def helper_generate(self, messages: GMITLP_Encrypted_Messages, pk, sk, start_time, sc: SCInterface):
+    def helper_generate(
+        self,
+        messages: GMITLP_Encrypted_Messages,
+        pk: GMITLP_Public_Input,
+        sk: GMITLP_Secret_Input,
+        start_time: int,
+        sc: SCInterface,
+    ):
         puzz_list, hash_list = self.gmitlp.generate(messages, pk, sk)
         sc.commitments = hash_list
         return puzz_list

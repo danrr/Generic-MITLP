@@ -67,7 +67,7 @@ class GMITLP:
         self, m: TLP_Messages, pk: GMITLP_Public_Input, sk: GMITLP_Secret_Input
     ) -> tuple[TLP_Puzzles, TLP_Digests]:
         # todo: generator function?
-        aux, n, t, _ = pk
+        _, n, t, _ = pk
         a, r, d = sk
         z = len(m)
         if len(r) != z or len(d) != z:

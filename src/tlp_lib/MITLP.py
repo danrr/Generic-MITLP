@@ -14,7 +14,6 @@ from tlp_lib.protocols import (
     TLP_Digests,
     TLP_Message,
     TLP_Messages,
-    TLP_Puzzle,
     TLP_Puzzles,
     TLP_type,
 )
@@ -64,7 +63,7 @@ class MITLP:
         self, m: TLP_Messages, pk: MITLP_Public_Input, sk: MITLP_Secret_Input
     ) -> tuple[TLP_Puzzles, TLP_Digests]:
         # todo: generator function?
-        aux, n, t, _ = pk
+        _, n, t, _ = pk
         a, r, d = sk
         z = len(m)
         if len(r) != z or len(d) != z:
