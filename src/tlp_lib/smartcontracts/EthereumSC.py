@@ -19,11 +19,9 @@ class EthereumSC:
         self._initiate_network(web3)
         print("Network initiated")
         self.account = account
-        print("Account initiated")
-        self.contract = None
-        self.contract_path = contract_path
 
         self._contract = None
+        self._contract_path = contract_path
 
     # Public Properties #
 
@@ -84,7 +82,10 @@ class EthereumSC:
 
     def load_contract(self, contract_address):
         (abi, _) = self._compile_contract()
-        self.contract = self.web3.eth.contract(address=contract_address, abi=abi)
+        self._contract = self.web3.eth.contract(address=contract_address, abi=abi)
+
+    def switch_to_account(self, account_index):
+        self.account = self.web3.eth.accounts[account_index]
 
     def add_solution(self, solution, witness):
         if not self._has_succeeded(self._contract.functions.addSolution(solution, witness)):
