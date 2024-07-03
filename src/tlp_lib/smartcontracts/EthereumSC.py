@@ -23,6 +23,8 @@ class EthereumSC:
         self.contract = None
         self.contract_path = contract_path
 
+        self._contract = None
+
     # Public Properties #
 
     @property
@@ -55,6 +57,16 @@ class EthereumSC:
     @property
     def initial_timestamp(self):
         return self._contract.functions.initialTimestamp().call()
+
+    @property
+    def account(self):
+        if self._account is None:
+            raise RuntimeError("No Account set.  Please set an account to use the contract.")
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        self._account = value
 
     # Public Methods #
 
@@ -93,30 +105,15 @@ class EthereumSC:
 
     @property
     def _contract(self):
-        if self.contract is None:
+        if self.__contract is None:
             raise RuntimeError("No Contract set.  Please load a contract or initiate it first.")
-        return self.contract
+        return self.__contract
 
     @_contract.setter
     def _contract(self, value):
-        if self.contract is not None:
-            raise RuntimeError("Contract already set.  Please create a new instance to set a new contract.")
         self.__contract = value
 
-    @property
-    def account(self):
-        if self._account is None:
-            raise RuntimeError("No Account set.  Please set an account to use the contract.")
-        return self._account
-
-    @account.setter
-    def account(self, value):
-        self._account = value
-
     # Private Methods #
-
-    def switch_to_account(self, account_index):
-        self.account = self.web3.eth.accounts[account_index]
 
     def _compile_contract(self):
         """
@@ -126,13 +123,13 @@ class EthereumSC:
         install_solc(SOLC_VERSION)
 
         compiled_sol = compile_files(
-            [self.contract_path],
+            [self._contract_path],
             output_values=["abi", "bin"],
             solc_version=SOLC_VERSION,
         )
 
-        abi = compiled_sol[self.contract_path + ":" + CONTRACT_NAME]["abi"]
-        bytecode = compiled_sol[self.contract_path + ":" + CONTRACT_NAME]["bin"]
+        abi = compiled_sol[self._contract_path + ":" + CONTRACT_NAME]["abi"]
+        bytecode = compiled_sol[self._contract_path + ":" + CONTRACT_NAME]["bin"]
 
         assert abi is not None
         assert bytecode is not None
@@ -151,7 +148,7 @@ class EthereumSC:
 
         tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
 
-        self.contract = self.web3.eth.contract(address=tx_receipt["contractAddress"], abi=abi)
+        self._contract = self.web3.eth.contract(address=tx_receipt["contractAddress"], abi=abi)
         return tx_receipt["contractAddress"]
 
     def _initiate_network(self, web3: Optional[Web3] = None):
