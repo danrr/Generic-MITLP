@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from typing import Optional
+from typing import Optional, Unpack
 
 import gmpy2
 
@@ -16,6 +16,7 @@ from tlp_lib.protocols import (
     TLP_Messages,
     TLP_Puzzles,
     TLP_type,
+    TLPKwargs,
 )
 from tlp_lib.wrappers import Random, SHA512Wrapper
 from tlp_lib.wrappers.protocols import HashFunc, RandGen
@@ -31,7 +32,7 @@ class MITLP:
         hash_func: HashFunc = SHA512Wrapper,
         random: Optional[RandGen] = None,
         seed: Optional[int] = None,
-        **kwargs,
+        **kwargs: Unpack[TLPKwargs],
     ):
         if random is None:
             random = Random(seed=seed)

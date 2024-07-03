@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Generator, NamedTuple, Optional, Protocol, Tuple
+from typing import Generator, NamedTuple, NotRequired, Optional, Protocol, TypedDict, Unpack
 
 from tlp_lib import TLP
 from tlp_lib.wrappers import SHA512Wrapper
@@ -18,6 +18,11 @@ type TLP_Digest = bytes
 type TLP_Digests = list[TLP_Digest]
 type TLP_Key = tuple[TLP_Public, TLP_Secret]
 type TLP_Interval = int
+
+
+class TLPKwargs(TypedDict):
+    sym_enc: NotRequired[SymEnc]
+    gen_modulus: NotRequired[RSAKeyGen]
 
 
 class TLPInterface(Protocol):
@@ -57,15 +62,21 @@ GMITLP_Secret_Input = GMITLP_Secret | tuple[Sequence[int], Sequence[bytes], Sequ
 type GMITLP_Intervals = list[TLP_Interval]
 
 
+class GMITLPKwargs(TypedDict):
+    tlp: NotRequired[TLP_type]
+    hash_func: NotRequired[HashFunc]
+    gen_modulus: NotRequired[RSAKeyGen]
+
+
 class GMITLPInterface(Protocol):
     def __init__(
         self,
         *,
-        tlp: type[TLPInterface] = TLP,
+        tlp: TLP_type = TLP,
         hash_func: HashFunc = SHA512Wrapper,
         random: Optional[RandGen] = None,
         seed: Optional[int] = None,
-        **kwargs,
+        **kwargs: Unpack[TLPKwargs],
     ): ...
 
     def setup(

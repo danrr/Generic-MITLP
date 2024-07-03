@@ -1,7 +1,7 @@
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from itertools import accumulate
 from operator import add
-from typing import Optional
+from typing import Optional, Unpack
 
 from tlp_lib import GMITLP
 from tlp_lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
@@ -13,6 +13,7 @@ from tlp_lib.protocols import (
     GMITLP_Public_Input,
     GMITLP_Secret_Input,
     GMITLP_type,
+    GMITLPKwargs,
     Server_Info,
     TLP_Digest,
     TLP_Message,
@@ -49,7 +50,7 @@ class DGMITLP:
         random: Optional[RandGen] = None,
         seed: Optional[int] = None,
         SC: SCInterface = MockSC(),
-        **kwargs,
+        **kwargs: Unpack[GMITLPKwargs],
     ):
         if random is None:
             random = Random(seed=seed)
@@ -79,7 +80,7 @@ class DGMITLP:
         helper_id: int,
         squarings_upper_bound: Optional[int] = None,
         keysize: int = 2048,
-        cdeg=custom_extra_delay,
+        cdeg: Callable[[int, int, Server_Info], float] = custom_extra_delay,
     ) -> tuple[SC_ExtraTime, SCInterface]:
         if squarings_upper_bound is None:
             squarings_upper_bound = SQUARINGS_PER_SEC_UPPER_BOUND[keysize]
