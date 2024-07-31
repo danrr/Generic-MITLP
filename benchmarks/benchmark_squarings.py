@@ -17,7 +17,7 @@ INTERVAL_NS = INTERVAL * MILI_TO_S
 
 def count_squarings_in_fixed_time():
     tlp = TLP(seed=SEED)
-    pk, sk = tlp.setup(1, 1, keysize=KEYSIZE)
+    pk, _ = tlp.setup(1, 1, keysize=KEYSIZE)
     n, _, r = pk
 
     counter = 0
@@ -38,9 +38,9 @@ def count_squarings_in_fixed_time():
     # print("per hour", counter / INTERVAL * 3600)
 
 
-def time_fixed_squarings(squarings):
+def time_fixed_squarings(squarings: int):
     tlp = TLP(seed=SEED)
-    pk, sk = tlp.setup(1, 1, keysize=KEYSIZE)
+    pk, _ = tlp.setup(1, 1, keysize=KEYSIZE)
     n, _, r = pk
     start = now()
     for _ in range(squarings):
@@ -50,7 +50,7 @@ def time_fixed_squarings(squarings):
     print(squarings / seconds)
 
 
-def compare_gmpy_sage(squarings):
+def compare_gmpy_sage(squarings: int):
     import gmpy2
     from sage.all import IntegerModRing, power  # type: ignore
 

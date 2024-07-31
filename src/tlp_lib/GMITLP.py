@@ -1,5 +1,5 @@
 from collections.abc import Generator, Sequence
-from typing import Optional
+from typing import Optional, Unpack
 
 import gmpy2
 
@@ -15,7 +15,8 @@ from tlp_lib.protocols import (
     TLP_Message,
     TLP_Messages,
     TLP_Puzzles,
-    TLPInterface,
+    TLP_type,
+    TLPKwargs,
 )
 from tlp_lib.wrappers import Random, SHA512Wrapper
 from tlp_lib.wrappers.protocols import HashFunc, RandGen
@@ -27,11 +28,11 @@ class GMITLP:
     def __init__(
         self,
         *,
-        tlp: type[TLPInterface] = TLP,
+        tlp: TLP_type = TLP,
         hash_func: HashFunc = SHA512Wrapper,
         random: Optional[RandGen] = None,
         seed: Optional[int] = None,
-        **kwargs,
+        **kwargs: Unpack[TLPKwargs],
     ):
         if random is None:
             random = Random(seed=seed)
@@ -67,7 +68,7 @@ class GMITLP:
         self, m: TLP_Messages, pk: GMITLP_Public_Input, sk: GMITLP_Secret_Input
     ) -> tuple[TLP_Puzzles, TLP_Digests]:
         # todo: generator function?
-        aux, n, t, _ = pk
+        _, n, t, _ = pk
         a, r, d = sk
         z = len(m)
         if len(r) != z or len(d) != z:

@@ -1,11 +1,14 @@
 from typing import Protocol, Self
 
+from eth_typing import ChecksumAddress
+
 from tlp_lib.protocols import GMITLP_Encrypted_Message, TLP_Digest, TLP_Digests
 
-type SC_Coins = list[int]
-type SC_UpperBounds = list[int]
-type SC_ExtraTime = list[float]
-type SC_Solutions = list[tuple[GMITLP_Encrypted_Message, TLP_Digest, int]]
+SC_Coins = list[int]
+SC_UpperBounds = list[int]
+SC_ExtraTime = list[float]
+SC_Solution = tuple[GMITLP_Encrypted_Message, TLP_Digest, int]
+SC_Solutions = list[SC_Solution]
 
 
 class SCInterface(Protocol):
@@ -16,7 +19,7 @@ class SCInterface(Protocol):
         start_time: int,
         extra_time: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
-        helper_id: int,
+        helper_id: int | ChecksumAddress,
     ) -> Self: ...
 
     def add_solution(self, solution: GMITLP_Encrypted_Message, witness: TLP_Digest) -> None: ...

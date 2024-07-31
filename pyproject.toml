@@ -3,7 +3,7 @@ name = "tlp_lib"
 version = "0.1.0"
 dependencies = [
     "cryptography >= 42.0.4",
-    "gmpy2 >=2.2.0rc1",
+    "gmpy2 >=2.2.1",
 ]
 [project.optional-dependencies]
 dev = ["pip-tools", "pytest", "basedpyright", "isort", "black"]
@@ -24,7 +24,8 @@ target-version = ["py311"]
 line_length = 120
 
 [tool.basedpyright]
-exclude = [".venv", "typings/eth_tester"]
+include = ["src", "tests", "benchmarks"]
+strict = ["src", "tests"]
 typeCheckingMode = "standard"
 reportMissingTypeStubs = true
 verboseOutput = true

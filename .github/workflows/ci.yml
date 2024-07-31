@@ -27,11 +27,14 @@ jobs:
       run: |
         isort . --check --diff
     - name: black
+      if: always()
       run: |
         black . --check --diff
     - name: pyright
+      if: always()
       run: |
-        basedpyright .
+        basedpyright
     - name: Run tests
+      if: always()
       run: |
         pytest

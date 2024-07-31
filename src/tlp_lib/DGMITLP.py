@@ -1,7 +1,9 @@
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from itertools import accumulate
 from operator import add
-from typing import Optional
+from typing import Optional, Unpack
+
+from eth_typing import ChecksumAddress
 
 from tlp_lib import GMITLP
 from tlp_lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
@@ -11,7 +13,9 @@ from tlp_lib.protocols import (
     GMITLP_Encrypted_Messages,
     GMITLP_Intervals,
     GMITLP_Public_Input,
+    GMITLP_Secret_Input,
     GMITLP_type,
+    GMITLPKwargs,
     Server_Info,
     TLP_Digest,
     TLP_Message,
@@ -48,7 +52,7 @@ class DGMITLP:
         random: Optional[RandGen] = None,
         seed: Optional[int] = None,
         SC: SCInterface = MockSC(),
-        **kwargs,
+        **kwargs: Unpack[GMITLPKwargs],
     ):
         if random is None:
             random = Random(seed=seed)
@@ -75,10 +79,10 @@ class DGMITLP:
         server_info: Server_Info,
         coins: SC_Coins,
         start_time: int,
-        helper_id: int,
+        helper_id: int | ChecksumAddress,
         squarings_upper_bound: Optional[int] = None,
         keysize: int = 2048,
-        cdeg=custom_extra_delay,
+        cdeg: Callable[[int, int, Server_Info], float] = custom_extra_delay,
     ) -> tuple[SC_ExtraTime, SCInterface]:
         if squarings_upper_bound is None:
             squarings_upper_bound = SQUARINGS_PER_SEC_UPPER_BOUND[keysize]
@@ -94,7 +98,14 @@ class DGMITLP:
     def helper_setup(self, intervals: GMITLP_Intervals, squaring_per_second: int, keysize: int = 2048):
         return self.gmitlp.setup(intervals, squaring_per_second, keysize=keysize)
 
-    def helper_generate(self, messages: GMITLP_Encrypted_Messages, pk, sk, start_time, sc: SCInterface):
+    def helper_generate(
+        self,
+        messages: GMITLP_Encrypted_Messages,
+        pk: GMITLP_Public_Input,
+        sk: GMITLP_Secret_Input,
+        start_time: int,
+        sc: SCInterface,
+    ):
         puzz_list, hash_list = self.gmitlp.generate(messages, pk, sk)
         sc.commitments = hash_list
         return puzz_list

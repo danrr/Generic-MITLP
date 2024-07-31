@@ -37,7 +37,7 @@ class TLP:
         return TLP_Public(n, t, r), TLP_Secret(p, q, phi_n, a)
 
     def generate(self, pk: TLP_Public_Input, a: int, message: TLP_Message) -> TLP_Puzzle:
-        n, t, r = pk
+        n, _, r = pk
 
         k = self.sym_enc.generate_key()
         b = gmpy2.powmod(r, a, n)
@@ -49,7 +49,7 @@ class TLP:
         encrypted_key, encrypted_message = puzzle
         n, t, r = pk
 
-        for i in range(t):
+        for _ in range(t):
             r = r**2 % n
         key_int = int((encrypted_key - r) % n)
         message = self.sym_enc.decrypt(key_int, encrypted_message)

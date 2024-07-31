@@ -1,3 +1,5 @@
+from typing import Literal
+
 import pytest
 
 from tlp_lib import MITLP
@@ -14,7 +16,7 @@ from tlp_lib import MITLP
         [b"test1", b"test2", b"test2", b"test2", b"test2"],
     ],
 )
-def test_mitlp(keysize, messages):
+def test_mitlp(keysize: Literal[1024, 2048], messages: list[bytes]):
     mitlp = MITLP()
     z = len(messages)
     pk, sk = mitlp.setup(z, 1, 1, keysize=keysize)
