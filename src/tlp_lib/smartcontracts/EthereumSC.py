@@ -16,7 +16,7 @@ from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solution
 
 SOLC_VERSION = "0.8.0"
 CONTRACT_NAME = "SmartContract"
-CONTRACT_PATH = str(Path("../../../contracts/SmartContract.sol").resolve())
+CONTRACT_PATH = str((Path(__file__) / "../../../contracts/SmartContract.sol").resolve())
 
 logger = getLogger(__name__)
 
@@ -113,7 +113,7 @@ class EthereumSC:
             raise RuntimeError("Solution was not added correctly")
 
     def get_message_at(self, i: int) -> GMITLP_Encrypted_Message:
-        return self._contract.functions.getSolutionAt(i).call()[0]
+        return self._contract.functions.getSolutionAt(i).call()
 
     def pay(self, i: int) -> None:
         if not self._has_succeeded(self._contract.functions.pay(i)):

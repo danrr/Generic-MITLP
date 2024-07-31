@@ -44,7 +44,7 @@ class MockSC:
         pass
 
     def pay(self, i: int, /):
-        print(f"paying TPH' {self.coins[i]}")
+        print(f"paying TPH {self.coins[i]}")
 
     def pay_back(self, i: int, /):
-        print(f"paying TPH' back {self.coins[i]}")
+        print(f"paying back {self.coins[i]}")

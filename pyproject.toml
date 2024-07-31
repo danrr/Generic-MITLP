@@ -24,8 +24,9 @@ target-version = ["py311"]
 line_length = 120
 
 [tool.basedpyright]
-include = ["src", "tests"]
-typeCheckingMode = "strict"
+include = ["src", "tests", "benchmarks"]
+strict = ["src", "tests"]
+typeCheckingMode = "standard"
 reportMissingTypeStubs = true
 verboseOutput = true
 reportDeprecated = true

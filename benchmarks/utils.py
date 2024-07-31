@@ -2,25 +2,30 @@ import functools
 import sys
 import timeit
 from operator import add
+from typing import Any, Callable, Optional
 
 from consts import NUMBER, REPEAT
 
 
-def timer(f, *args):
-    return timeit.Timer(functools.partial(f, *args)).repeat(repeat=REPEAT, number=NUMBER)
+def timer[R, **P](f: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> list[float]:
+    return timeit.Timer(functools.partial(f, *args, **kwargs)).repeat(repeat=REPEAT, number=NUMBER)
 
 
-def timer_with_output(f, *args):
-    output = []
+def timer_with_output[R, **P](f: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> tuple[list[float], R]:
+    output: Optional[R] = None
 
     def func():
-        output.clear()
-        output.append(f(*args))
+        nonlocal output
+        output = f(*args, **kwargs)
 
-    return [timeit.Timer(func).repeat(repeat=REPEAT, number=NUMBER), output[0]]
+    times = timeit.Timer(func).repeat(repeat=REPEAT, number=NUMBER)
+
+    assert output is not None
+
+    return times, output
 
 
-def get_size(x):
+def get_size(x: Any) -> int:
     size = sys.getsizeof(x)
     if hasattr(x, "__iter__") and not isinstance(x, (str, bytes, bytearray)):
         for y in x:
@@ -28,7 +33,7 @@ def get_size(x):
     return size
 
 
-def add_times(a, b, *args):
+def add_times(a: list[float], b: list[float], *args: list[float]) -> list[float]:
     result = list(map(add, a, b))
     for arg in args:
         result = list(map(add, arg, result))
