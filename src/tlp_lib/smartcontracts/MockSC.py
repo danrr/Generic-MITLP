@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Self
+from typing import Any, Self
 
 from tlp_lib.protocols import GMITLP_Encrypted_Message, TLP_Digest, TLP_Digests
 from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solutions, SC_UpperBounds
@@ -10,9 +10,9 @@ class MockSC:
     start_time: int
     upper_bounds: SC_UpperBounds
     coins: SC_Coins
-    solutions: SC_Solutions
+    solutions: SC_Solutions = []
     initial_timestamp: int
-    helper_id: int
+    helper_id: Any
     extra_time: SC_ExtraTime
 
     def initiate(
@@ -21,7 +21,7 @@ class MockSC:
         start_time: int,
         extra_time: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
-        helper_id: int,
+        helper_id: Any,
     ) -> Self:
         self.coins = coins
         self.start_time = start_time

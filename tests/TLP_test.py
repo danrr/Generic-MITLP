@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytest
 
 from tlp_lib import TLP
@@ -20,7 +22,7 @@ from tlp_lib.wrappers import SeededRSA
         1234,
     ],
 )
-def test_tlp(message, seed):
+def test_tlp(message: bytes, seed: Optional[int]):
     tlp = TLP(seed=seed)
 
     pk, sk = tlp.setup(1, 1)

@@ -1,3 +1,5 @@
+from typing import Literal
+
 import pytest
 
 from tlp_lib import GMITLP
@@ -13,7 +15,7 @@ from tlp_lib import GMITLP
         ([b"test1", b"test2", b"test1", b"test2"], [1, 2, 1, 2]),
     ],
 )
-def test_gmitlp(keysize, messages, intervals):
+def test_gmitlp(keysize: Literal[1024, 2048], messages: list[bytes], intervals: list[int]):
     gmitlp = GMITLP()
     pk, sk = gmitlp.setup(intervals, 1, keysize=keysize)
     puzz_list, hash_list = gmitlp.generate(messages, pk, sk)

@@ -3,6 +3,8 @@ from itertools import accumulate
 from operator import add
 from typing import Optional, Unpack
 
+from eth_typing import ChecksumAddress
+
 from tlp_lib import GMITLP
 from tlp_lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
 from tlp_lib.protocols import (
@@ -77,7 +79,7 @@ class DGMITLP:
         server_info: Server_Info,
         coins: SC_Coins,
         start_time: int,
-        helper_id: int,
+        helper_id: int | ChecksumAddress,
         squarings_upper_bound: Optional[int] = None,
         keysize: int = 2048,
         cdeg: Callable[[int, int, Server_Info], float] = custom_extra_delay,

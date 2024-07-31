@@ -1,6 +1,6 @@
 import math
-from collections import namedtuple
 from pathlib import Path
+from typing import Literal
 from unittest.mock import Mock
 
 import pytest
@@ -10,10 +10,11 @@ from tlp_lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
 from tlp_lib.DGMITLP import CoinException, UpperBoundException
 from tlp_lib.protocols import Server_Info
 from tlp_lib.smartcontracts import EthereumSC, MockSC
+from tlp_lib.smartcontracts.protocols import SCInterface
 
 
 @pytest.mark.parametrize("keysize", [1024, 2048])
-def test_cdeg(keysize):
+def test_cdeg(keysize: Literal[1024, 2048]):
     minimum_delay = 10
 
     assert math.isclose(
@@ -45,7 +46,7 @@ def test_dgmitlp_too_few_coins():
 
 
 @pytest.mark.parametrize("keysize", [1024, 2048])
-def test_dgmitlp_helper_too_slow(keysize):
+def test_dgmitlp_helper_too_slow(keysize: Literal[1024, 2048]):
     coins = [1, 1]
     coins_acceptable = 1
     intervals = [1, 2]
@@ -65,7 +66,7 @@ def test_dgmitlp_helper_too_slow(keysize):
 
 
 @pytest.mark.parametrize("keysize", [1024, 2048])
-def test_dgmitlp_helper_good_enough(keysize):
+def test_dgmitlp_helper_good_enough(keysize: Literal[1024, 2048]):
     coins = [1, 1]
     coins_acceptable = 1
     intervals = [1, 2]
@@ -93,7 +94,7 @@ def test_dgmitlp_helper_good_enough(keysize):
     ],
 )
 @pytest.mark.parametrize("sc", [MockSC(), EthereumSC(contract_path=str(Path("contracts/SmartContract.sol").resolve()))])
-def test_dgmitlp(keysize, messages, intervals, sc):
+def test_dgmitlp(keysize: Literal[1024, 2048], messages: list[bytes], intervals: list[int], sc: SCInterface):
     squarings_per_second_helper = 1
 
     coins = [1] * len(intervals)
@@ -103,8 +104,6 @@ def test_dgmitlp(keysize, messages, intervals, sc):
     server_id = 0
     server_helper_id = 2
     server_info = Server_Info(squarings=1)
-
-    helper_id = client_helper_id
 
     dgmitlp = DGMITLP(SC=sc)
 
@@ -117,9 +116,11 @@ def test_dgmitlp(keysize, messages, intervals, sc):
         # Generate an address for the client helper and save it
         sc.switch_to_account(client_helper_id)
         helper_id = sc.account
+    else:
+        helper_id = client_helper_id
     sc.switch_to_account(server_id)
 
-    extra_time, sc = dgmitlp.server_delegation(
+    _, sc = dgmitlp.server_delegation(
         intervals,
         server_info,
         coins,
