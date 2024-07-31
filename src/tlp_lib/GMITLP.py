@@ -47,13 +47,11 @@ class GMITLP:
         n, _, r_0 = tlp_pk
         _, _, phi_n, _ = tlp_sk
 
-        # todo: can I reuse MITLP's setup?
-
         t = [gmpy2.mpz(interval * squaring_per_second) for interval in intervals]
         # todo: can I make this more efficient? fixed base
         a = [gmpy2.powmod(2, t_i, phi_n) for t_i in t]
 
-        r = [r_0] + [self.random.gen_random_generator_mod_n(n) for _ in intervals[1:]]
+        r = [r_0] + [self.random.gen_random_generator_mod_n(n) for _ in intervals]
         len_r = keysize // 8
         r_bin = [ri.to_bytes(length=len_r) for ri in r]
 
@@ -71,8 +69,10 @@ class GMITLP:
         _, n, t, _ = pk
         a, r, d = sk
         z = len(m)
-        if len(r) != z or len(d) != z:
-            raise ValueError("length of m, r, and d must be equal")
+        if len(d) != z:
+            raise ValueError("length of m and d must be equal")
+        if len(r) != z + 1:
+            raise ValueError("length of r must be one more than m")
 
         hash_list: TLP_Digests = []
         puzz_list: TLP_Puzzles = []
@@ -82,8 +82,7 @@ class GMITLP:
             message = m[i] + d[i]
             hash_list.append(self.hash.digest(message))
 
-            if i != z - 1:
-                message += r[i + 1]
+            message += r[i + 1]
             puzzle = self.tlp.generate(pk_i, a[i], message)
             puzz_list.append(puzzle)
 
@@ -99,12 +98,8 @@ class GMITLP:
         for i in range(z):
             s_i = self.tlp.solve((n, t[i], r_i), puzz[i])
 
-            if i < z - 1:
-                r_i = s_i[-len_r:]
-                r_i = gmpy2.mpz.from_bytes(r_i)
-                message = s_i[:-len_r]
-            else:
-                message = s_i
+            r_i = gmpy2.mpz.from_bytes(s_i[-len_r:])
+            message = s_i[:-len_r]
 
             m_i = message[:-len_d]
             d_i = message[-len_d:]
