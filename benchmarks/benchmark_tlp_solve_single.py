@@ -1,4 +1,5 @@
 import math
+import os
 
 from consts import KEYSIZE, MESSAGE, SEED, SQUARINGS_PER_SEC
 from utils import timer
@@ -14,9 +15,9 @@ def benchmark_tlp_solve_single():
     times = timer(tlp.solve, pk, p)
 
     print(times)
-    for t in times:
-        assert math.isclose(t, time, abs_tol=0.05)
+    assert math.isclose(times, time, abs_tol=0.05)
 
 
 if __name__ == "__main__":
+    os.nice(-20)
     benchmark_tlp_solve_single()

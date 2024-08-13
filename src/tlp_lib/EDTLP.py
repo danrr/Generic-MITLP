@@ -5,17 +5,17 @@ from typing import Optional, Unpack
 
 from eth_typing import ChecksumAddress
 
-from tlp_lib import GMITLP
+from tlp_lib import GCTLP
 from tlp_lib.consts import SQUARINGS_PER_SEC_UPPER_BOUND
 from tlp_lib.protocols import (
-    GMITLP_Client_Key,
-    GMITLP_Encrypted_Message,
-    GMITLP_Encrypted_Messages,
-    GMITLP_Intervals,
-    GMITLP_Public_Input,
-    GMITLP_Secret_Input,
-    GMITLP_type,
-    GMITLPKwargs,
+    GCTLP_Client_Key,
+    GCTLP_Encrypted_Message,
+    GCTLP_Encrypted_Messages,
+    GCTLP_Intervals,
+    GCTLP_Public_Input,
+    GCTLP_Secret_Input,
+    GCTLP_type,
+    GCTLPKwargs,
     Server_Info,
     TLP_Digest,
     TLP_Message,
@@ -43,16 +43,16 @@ def custom_extra_delay(squarings_upper_bound: int, seconds: int, aux: Server_Inf
     return seconds * (squarings_upper_bound / squarings - 1)
 
 
-class DGMITLP:
+class EDTLP:
     def __init__(
         self,
         *,
-        gmitlp: GMITLP_type = GMITLP,
+        gctlp: GCTLP_type = GCTLP,
         sym_enc: Optional[SymEnc] = None,
         random: Optional[RandGen] = None,
         seed: Optional[int] = None,
-        SC: SCInterface = MockSC(),
-        **kwargs: Unpack[GMITLPKwargs],
+        smart_contract: SCInterface = MockSC(),
+        **kwargs: Unpack[GCTLPKwargs],
     ):
         if random is None:
             random = Random(seed=seed)
@@ -60,22 +60,20 @@ class DGMITLP:
         if sym_enc is None:
             sym_enc = FernetWrapper()
         self.sym_enc = sym_enc
-        self.gmitlp = gmitlp(seed=seed, random=self.random, sym_enc=self.sym_enc, **kwargs)
-        self.SC = SC
+        self.gctlp = gctlp(seed=seed, random=self.random, sym_enc=self.sym_enc, **kwargs)
+        self.smart_contract = smart_contract
 
-    def client_setup(self) -> GMITLP_Client_Key:
+    def client_setup(self) -> GCTLP_Client_Key:
         return self.sym_enc.generate_key()
 
-    def client_delegation(
-        self, messages: TLP_Messages, csk: GMITLP_Client_Key
-    ) -> tuple[GMITLP_Encrypted_Messages, int]:
+    def client_delegation(self, messages: TLP_Messages, csk: GCTLP_Client_Key) -> tuple[GCTLP_Encrypted_Messages, int]:
         start_time = 0  # todo: allow for delays
         return [self.sym_enc.encrypt(csk, message) for message in messages], start_time
         # todo: send encrypted messages to TPH and start_time to TPH and S
 
     def server_delegation(
         self,
-        intervals: GMITLP_Intervals,
+        intervals: GCTLP_Intervals,
         server_info: Server_Info,
         coins: SC_Coins,
         start_time: int,
@@ -89,24 +87,24 @@ class DGMITLP:
 
         extra_time = [cdeg(squarings_upper_bound, interval, server_info) for interval in intervals]
         upper_bounds = list(accumulate([start_time] + list(map(add, intervals, extra_time))))[1:]
-        sc = self.SC.initiate(
+        sc = self.smart_contract.initiate(
             coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds, helper_id=helper_id
         )
 
         return extra_time, sc
 
-    def helper_setup(self, intervals: GMITLP_Intervals, squaring_per_second: int, keysize: int = 2048):
-        return self.gmitlp.setup(intervals, squaring_per_second, keysize=keysize)
+    def helper_setup(self, intervals: GCTLP_Intervals, squaring_per_second: int, keysize: int = 2048):
+        return self.gctlp.setup(intervals, squaring_per_second, keysize=keysize)
 
     def helper_generate(
         self,
-        messages: GMITLP_Encrypted_Messages,
-        pk: GMITLP_Public_Input,
-        sk: GMITLP_Secret_Input,
+        messages: GCTLP_Encrypted_Messages,
+        pk: GCTLP_Public_Input,
+        sk: GCTLP_Secret_Input,
         start_time: int,
         sc: SCInterface,
     ):
-        puzz_list, hash_list = self.gmitlp.generate(messages, pk, sk)
+        puzz_list, hash_list = self.gctlp.generate(messages, pk, sk)
         sc.commitments = hash_list
         return puzz_list
         # todo: use start_time to send puzz_list to TPH
@@ -115,10 +113,10 @@ class DGMITLP:
         self,
         sc: SCInterface,
         server_info: Server_Info,
-        pk: GMITLP_Public_Input,
+        pk: GCTLP_Public_Input,
         puzz: TLP_Puzzles,
         coins_acceptable: int,
-    ) -> Generator[tuple[GMITLP_Encrypted_Message, TLP_Digest], None, None]:
+    ) -> Generator[tuple[GCTLP_Encrypted_Message, TLP_Digest], None, None]:
         coins = sc.coins
         for coin in coins:
             if coin < coins_acceptable:
@@ -137,9 +135,9 @@ class DGMITLP:
                 raise UpperBoundException
             prev_bound = upper_bound
 
-        yield from self.gmitlp.solve(pk, puzz)
+        yield from self.gctlp.solve(pk, puzz)
 
-    def register(self, sc: SCInterface, solution: GMITLP_Encrypted_Message, commitment: TLP_Digest) -> None:
+    def register(self, sc: SCInterface, solution: GCTLP_Encrypted_Message, commitment: TLP_Digest) -> None:
         sc.add_solution(solution, commitment)
 
     def verify(self, sc: SCInterface, i: int) -> None:
@@ -148,7 +146,7 @@ class DGMITLP:
         time_to_solve = time_solved - sc.initial_timestamp
         upper_bound = sc.upper_bounds[i]
         assert time_to_solve < upper_bound
-        self.gmitlp.verify(solution, witness, commitment)
+        self.gctlp.verify(solution, witness, commitment)
 
     def pay(self, sc: SCInterface, i: int) -> None:
         try:
@@ -158,6 +156,6 @@ class DGMITLP:
         else:
             sc.pay(i)
 
-    def retrieve(self, sc: SCInterface, csk: GMITLP_Client_Key, i: int) -> TLP_Message:
+    def retrieve(self, sc: SCInterface, csk: GCTLP_Client_Key, i: int) -> TLP_Message:
         encrypted_message = sc.get_message_at(i)
         return self.sym_enc.decrypt(csk, encrypted_message)

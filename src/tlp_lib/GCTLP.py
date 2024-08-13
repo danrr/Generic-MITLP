@@ -5,10 +5,10 @@ import gmpy2
 
 from tlp_lib import TLP
 from tlp_lib.protocols import (
-    GMITLP_Public,
-    GMITLP_Public_Input,
-    GMITLP_Secret,
-    GMITLP_Secret_Input,
+    GCTLP_Public,
+    GCTLP_Public_Input,
+    GCTLP_Secret,
+    GCTLP_Secret_Input,
     MITLP_Auxiliary_Info,
     TLP_Digest,
     TLP_Digests,
@@ -24,7 +24,7 @@ from tlp_lib.wrappers.protocols import HashFunc, RandGen
 COMMITMENT_LENGTH = 128  # hard coded for hash commitments
 
 
-class GMITLP:
+class GCTLP:
     def __init__(
         self,
         *,
@@ -42,7 +42,7 @@ class GMITLP:
 
     def setup(
         self, intervals: Sequence[int], squaring_per_second: int, keysize: int = 2048
-    ) -> tuple[GMITLP_Public, GMITLP_Secret]:
+    ) -> tuple[GCTLP_Public, GCTLP_Secret]:
         tlp_pk, tlp_sk = self.tlp.setup(1, 1, keysize)
         n, _, r_0 = tlp_pk
         _, _, phi_n, _ = tlp_sk
@@ -60,10 +60,10 @@ class GMITLP:
 
         aux = MITLP_Auxiliary_Info(self.hash.name, len_bytes, len_r)
 
-        return GMITLP_Public(aux, n, t, r_0), GMITLP_Secret(a, r_bin, d)
+        return GCTLP_Public(aux, n, t, r_0), GCTLP_Secret(a, r_bin, d)
 
     def generate(
-        self, m: TLP_Messages, pk: GMITLP_Public_Input, sk: GMITLP_Secret_Input
+        self, m: TLP_Messages, pk: GCTLP_Public_Input, sk: GCTLP_Secret_Input
     ) -> tuple[TLP_Puzzles, TLP_Digests]:
         # todo: generator function?
         _, n, t, _ = pk
@@ -88,9 +88,7 @@ class GMITLP:
 
         return puzz_list, hash_list
 
-    def solve(
-        self, pk: GMITLP_Public_Input, puzz: TLP_Puzzles
-    ) -> Generator[tuple[TLP_Message, TLP_Digest], None, None]:
+    def solve(self, pk: GCTLP_Public_Input, puzz: TLP_Puzzles) -> Generator[tuple[TLP_Message, TLP_Digest], None, None]:
         aux, n, t, r_i = pk
         _, len_d, len_r = aux
         z = len(puzz)
