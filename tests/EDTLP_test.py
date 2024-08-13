@@ -111,7 +111,7 @@ def test_edtlp(keysize: Literal[1024, 2048], messages: list[bytes], intervals: l
     encrypted_messages, start_time = edtlp.client_delegation(messages, csk)
 
     # server
-    if type(sc) is EthereumSC:
+    if isinstance(sc, EthereumSC):
         # Generate an address for the client helper and save it
         sc.switch_to_account(client_helper_id)
         helper_id = sc.account

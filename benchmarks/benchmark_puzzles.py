@@ -1,12 +1,10 @@
 import csv
-from datetime import datetime
 import os
+from datetime import datetime
 from multiprocessing import Pool
 from typing import Optional
 
 from consts import KEYSIZE, MESSAGE, SEED, SQUARINGS_PER_SEC
-from tlp_lib.smartcontracts import MockSC, EthereumSC
-from tlp_lib.smartcontracts.protocols import SCInterface
 from utils import timer, timer_with_output
 
 from tlp_lib import EDTLP, GCTLP, MITLP, TLP
@@ -19,6 +17,8 @@ from tlp_lib.protocols import (
     TLP_Puzzle,
     TLP_Secret,
 )
+from tlp_lib.smartcontracts import EthereumSC, MockSC
+from tlp_lib.smartcontracts.protocols import SCInterface
 
 SOLVE = True
 
@@ -195,7 +195,7 @@ def benchmark_time_edtlp(instances: int, sc: Optional[SCInterface] = None):
     output["client delegation"] = time_client_delegation
 
     coins = [1] * len(distinct_intervals)
-    if type(sc) is EthereumSC:
+    if isinstance(sc, EthereumSC):
         # Generate an address for the client helper and save it
         sc.switch_to_account(client_helper_id)
         helper_id = sc.account
@@ -323,11 +323,12 @@ def benchmark():
                     ],
                 )
 
+                sc_output = None
                 if instances < 1000:
                     sc_output = benchmark_time_edtlp(instances, EthereumSC())
 
                 outputs = outputs.get()
-                if instances < 1000:
+                if sc_output:
                     outputs.append(sc_output)
 
                 for output in outputs:
