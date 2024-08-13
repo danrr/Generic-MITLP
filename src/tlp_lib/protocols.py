@@ -51,24 +51,24 @@ MITLP_Secret = NamedTuple("MITLP_Secret", [("a", int), ("r_bin", Sequence[bytes]
 MITLP_Secret_Input = MITLP_Secret | tuple[int, Sequence[bytes], Sequence[bytes]]
 
 
-GMITLP_Public = NamedTuple(
-    "GMITLP_Public", [("aux", MITLP_Auxiliary_Info), ("n", int), ("t", Sequence[int]), ("r_0", int)]
+GCTLP_Public = NamedTuple(
+    "GCTLP_Public", [("aux", MITLP_Auxiliary_Info), ("n", int), ("t", Sequence[int]), ("r_0", int)]
 )
-GMITLP_Public_Input = GMITLP_Public | tuple[MITLP_Auxiliary_Info, int, Sequence[int], int]
+GCTLP_Public_Input = GCTLP_Public | tuple[MITLP_Auxiliary_Info, int, Sequence[int], int]
 
-GMITLP_Secret = NamedTuple("GMITLP_Secret", [("a", Sequence[int]), ("r_bin", Sequence[bytes]), ("d", Sequence[bytes])])
-GMITLP_Secret_Input = GMITLP_Secret | tuple[Sequence[int], Sequence[bytes], Sequence[bytes]]
+GCTLP_Secret = NamedTuple("GCTLP_Secret", [("a", Sequence[int]), ("r_bin", Sequence[bytes]), ("d", Sequence[bytes])])
+GCTLP_Secret_Input = GCTLP_Secret | tuple[Sequence[int], Sequence[bytes], Sequence[bytes]]
 
-type GMITLP_Intervals = list[TLP_Interval]
+type GCTLP_Intervals = list[TLP_Interval]
 
 
-class GMITLPKwargs(TypedDict):
+class GCTLPKwargs(TypedDict):
     tlp: NotRequired[TLP_type]
     hash_func: NotRequired[HashFunc]
     gen_modulus: NotRequired[RSAKeyGen]
 
 
-class GMITLPInterface(Protocol):
+class GCTLPInterface(Protocol):
     def __init__(
         self,
         *,
@@ -80,23 +80,23 @@ class GMITLPInterface(Protocol):
     ): ...
 
     def setup(
-        self, intervals: GMITLP_Intervals, squaring_per_second: int, keysize: int = 2048
-    ) -> tuple[GMITLP_Public, GMITLP_Secret]: ...
+        self, intervals: GCTLP_Intervals, squaring_per_second: int, keysize: int = 2048
+    ) -> tuple[GCTLP_Public, GCTLP_Secret]: ...
 
     def generate(
-        self, m: TLP_Messages, pk: GMITLP_Public_Input, sk: GMITLP_Secret_Input
+        self, m: TLP_Messages, pk: GCTLP_Public_Input, sk: GCTLP_Secret_Input
     ) -> tuple[TLP_Puzzles, TLP_Digests]: ...
 
     def solve(
-        self, pk: GMITLP_Public_Input, puzz: TLP_Puzzles
+        self, pk: GCTLP_Public_Input, puzz: TLP_Puzzles
     ) -> Generator[tuple[TLP_Message, TLP_Digest], None, None]: ...
 
     def verify(self, m: TLP_Message, d: bytes, h: TLP_Digest) -> None: ...
 
 
-GMITLP_type = type[GMITLPInterface]
+GCTLP_type = type[GCTLPInterface]
 
 Server_Info = NamedTuple("Aux_server_info", [("squarings", int)])
-type GMITLP_Client_Key = int
-type GMITLP_Encrypted_Message = bytes
-type GMITLP_Encrypted_Messages = list[GMITLP_Encrypted_Message]
+type GCTLP_Client_Key = int
+type GCTLP_Encrypted_Message = bytes
+type GCTLP_Encrypted_Messages = list[GCTLP_Encrypted_Message]

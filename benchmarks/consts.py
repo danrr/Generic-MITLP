@@ -1,4 +1,3 @@
-REPEAT = 1
 NUMBER = 1
 
 SEED = 1234

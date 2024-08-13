@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Self
 
-from tlp_lib.protocols import GMITLP_Encrypted_Message, TLP_Digest, TLP_Digests
+from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests
 from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solutions, SC_UpperBounds
 
 
@@ -33,11 +33,11 @@ class MockSC:
         self.initial_timestamp = int(datetime.now().timestamp())
         return self
 
-    def add_solution(self, solution: GMITLP_Encrypted_Message, witness: TLP_Digest):
+    def add_solution(self, solution: GCTLP_Encrypted_Message, witness: TLP_Digest):
         time = int(datetime.now().timestamp())
         self.solutions.append((solution, witness, time))
 
-    def get_message_at(self, i: int, /) -> GMITLP_Encrypted_Message:
+    def get_message_at(self, i: int, /) -> GCTLP_Encrypted_Message:
         return self.solutions[i][0]
 
     def switch_to_account(self, account: int):

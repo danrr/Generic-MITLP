@@ -11,7 +11,7 @@ from web3.contract import Contract  # pyright: ignore[reportPrivateImportUsage]
 from web3.contract.contract import ContractFunction, HexBytes  # pyright: ignore[reportPrivateImportUsage]
 from web3.types import TxParams, TxReceipt
 
-from tlp_lib.protocols import GMITLP_Encrypted_Message, TLP_Digest, TLP_Digests
+from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests
 from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solutions, SC_UpperBounds
 
 SOLC_VERSION = "0.8.0"
@@ -108,11 +108,11 @@ class EthereumSC:
     def switch_to_account(self, account_index: int) -> None:
         self.account = self.web3.eth.accounts[account_index]
 
-    def add_solution(self, solution: GMITLP_Encrypted_Message, witness: TLP_Digest) -> None:
+    def add_solution(self, solution: GCTLP_Encrypted_Message, witness: TLP_Digest) -> None:
         if not self._has_succeeded(self._contract.functions.addSolution(solution, witness)):
             raise RuntimeError("Solution was not added correctly")
 
-    def get_message_at(self, i: int) -> GMITLP_Encrypted_Message:
+    def get_message_at(self, i: int) -> GCTLP_Encrypted_Message:
         return self._contract.functions.getSolutionAt(i).call()
 
     def pay(self, i: int) -> None:

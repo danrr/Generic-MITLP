@@ -48,10 +48,9 @@ Install editable package:
 pip install -e .
 ```
 
-
 Project uses `pip-tools` to manage dependencies.
 Dependencies are listed in `pyproject.toml` under `[project]` -> `dependencies` and `[project.optional-dependencies]` -> `dev`.
-To update dependencies, change pyproject.toml and run the `pip-compile` commands listed in the requirements files.
+To update dependencies, change `pyproject.toml` and run the `pip-compile` commands listed in the requirements files.
 
 ## Testing
 Includes tests for all implemented puzzles. Run with
@@ -59,10 +58,3 @@ Includes tests for all implemented puzzles. Run with
 ```sh
 pytest
 ```
-
-## Benchmarks
-`benchmark_squarings.py` - Find how many squarings a CPU can do in 1 second
-
-`benchmark_puzzles.py` - Find the run time of each algorithm for all puzzles
-
-`benchmark_tlp_solve_single.py` - Find the run time of solving a single TLP; useful in making sure the benchmarking is correct
