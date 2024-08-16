@@ -2,6 +2,7 @@ import csv
 import os
 from datetime import datetime
 from multiprocessing import Pool
+from operator import itemgetter
 from typing import Optional
 
 from consts import KEYSIZE, MESSAGE, SEED, SQUARINGS_PER_SEC
@@ -28,7 +29,11 @@ SOLVE = True
 
 def benchmark_time_tlp(instances: int):
     os.nice(-20)
-    output = {"name": "TLP", "instances": instances}
+    output = {
+        "name": "TLP",
+        "extra": None,
+        "instances": instances,
+    }
 
     messages = [MESSAGE] * instances
     distinct_intervals = [FIXED_INTERVAL] * instances
@@ -73,7 +78,8 @@ def benchmark_time_tlp(instances: int):
     # time_fixed_n = timer(tlp_setup_and_generate_fixed_n)
     # output["setup and generate fixed n"] = time_fixed_n
 
-    if not SOLVE or instances > 100:
+    if not SOLVE or instances >= 100:
+        output["total"] = sum((time_setup, time_generate))
         return output
 
     def tlp_solve_sequentially():
@@ -83,12 +89,17 @@ def benchmark_time_tlp(instances: int):
     time_solve = timer(tlp_solve_sequentially)
 
     output["solve"] = time_solve
+    output["total"] = sum((time_setup, time_generate, time_solve))
     return output
 
 
 def benchmark_time_mitlp(instances: int):
     os.nice(-20)
-    output = {"name": "MITLP", "instances": instances}
+    output = {
+        "name": "MITLP",
+        "extra": None,
+        "instances": instances,
+    }
 
     messages = [MESSAGE] * instances
     mitlp = MITLP(seed=SEED)
@@ -131,6 +142,7 @@ def benchmark_time_gctlp(instances: int):
     os.nice(-20)
     output = {
         "name": "GCTLP",
+        "extra": None,
         "instances": instances,
     }
 
@@ -173,10 +185,14 @@ def benchmark_time_gctlp(instances: int):
 def benchmark_time_edtlp(instances: int, sc: Optional[SCInterface] = None):
     if sc is None:
         sc = MockSC()
+        extra = ""
+    else:
+        extra = "eth"
 
     os.nice(-20)
     output = {
-        "name": f"EDTLP{' eth' if sc is EthereumSC else ''}",
+        "name": "EDTLP",
+        "extra": extra,
         "instances": instances,
     }
 
@@ -289,9 +305,35 @@ def runner(args):
 
 
 def benchmark():
+    rows = []
+
+    for instances in INSTANCES:
+        print(f"{instances} instances of {FIXED_INTERVAL} seconds each")
+        runnables = [
+            (benchmark_time_mitlp, instances),
+            (benchmark_time_gctlp, instances),
+            (benchmark_time_edtlp, instances),
+        ]
+        if instances != INSTANCES[0]:
+            runnables.append((benchmark_time_tlp, instances // 10))
+
+        with Pool(4) as p:
+            outputs = p.map_async(
+                runner,
+                runnables,
+            )
+
+            if instances < 1000:
+                rows.append(benchmark_time_edtlp(instances, EthereumSC()))
+
+            for output in outputs.get():
+                rows.append(output)
+    rows.append(benchmark_time_tlp(INSTANCES[-1]))
+
     with open(f"out/benchmark{datetime.now()}.csv", "w", newline="") as csvfile:
         fieldnames = [
             "name",
+            "extra",
             "instances",
             "setup",
             "helper setup",
@@ -308,31 +350,7 @@ def benchmark():
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-
-        for instances in INSTANCES:
-            print(f"{instances} instances of {FIXED_INTERVAL} seconds each")
-
-            with Pool(4) as p:
-                outputs = p.map_async(
-                    runner,
-                    [
-                        (benchmark_time_tlp, instances),
-                        (benchmark_time_mitlp, instances),
-                        (benchmark_time_gctlp, instances),
-                        (benchmark_time_edtlp, instances),
-                    ],
-                )
-
-                sc_output = None
-                if instances < 1000:
-                    sc_output = benchmark_time_edtlp(instances, EthereumSC())
-
-                outputs = outputs.get()
-                if sc_output:
-                    outputs.append(sc_output)
-
-                for output in outputs:
-                    writer.writerow(output)
+        writer.writerows(sorted(rows, key=itemgetter("name", "instances", "extra")))
 
 
 if __name__ == "__main__":
