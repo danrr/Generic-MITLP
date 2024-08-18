@@ -115,8 +115,25 @@ contract SmartContract {
         nextUnsolvedPuzzlePart++;
     }
 
-    function getSolutionAt(uint puzzlePartIndex) public view returns (bytes memory) {
-        return puzzleParts[puzzlePartIndex].solution;
+    function getCommitmentAt(uint puzzlePartIndex) public view returns (bytes memory) {
+        require(puzzlePartIndex < amountOfPuzzleParts, "The puzzle part index is out of bounds.");
+        require(puzzleParts[puzzlePartIndex].commitment.length > 0, "The commitment is not set yet.");
+        return puzzleParts[puzzlePartIndex].commitment;
+    }
+
+    function getSolutionAt(uint puzzlePartIndex) public returns (bytes memory, bytes memory, uint) {
+        require(puzzlePartIndex < amountOfPuzzleParts, "The puzzle part index is out of bounds.");
+
+        bytes memory solutionMemory = puzzleParts[puzzlePartIndex].solution;
+        bytes memory witnessMemory = puzzleParts[puzzlePartIndex].witness;
+        uint timestamp = puzzleParts[puzzlePartIndex].timestamp;
+
+        return (solutionMemory, witnessMemory, timestamp);
+    }
+
+    function getUpperBoundAt(uint puzzlePartIndex) public view returns (uint) {
+        require(puzzlePartIndex < amountOfPuzzleParts, "The puzzle part index is out of bounds.");
+        return puzzleParts[puzzlePartIndex].upperBound;
     }
 
     function solutions() public view returns (bytes[] memory, bytes[] memory, uint[] memory) {

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Self
 
 from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests
-from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solutions, SC_UpperBounds
+from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solution, SC_Solutions, SC_UpperBounds
 
 
 class MockSC:
@@ -48,3 +48,12 @@ class MockSC:
 
     def pay_back(self, i: int, /):
         print(f"paying back {self.coins[i]}")
+
+    def get_commitment_at(self, i: int, /) -> TLP_Digest:
+        return self.commitments[i]
+
+    def get_solution_at(self, i: int, /) -> SC_Solution:
+        return self.solutions[i]
+
+    def get_upper_bound_at(self, i: int, /) -> int:
+        return self.upper_bounds[i]
