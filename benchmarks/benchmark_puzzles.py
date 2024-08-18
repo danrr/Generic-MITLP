@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from multiprocessing import Pool
 from operator import itemgetter
+from pathlib import Path
 from typing import Optional
 
 from consts import KEYSIZE, MESSAGE, SEED, SQUARINGS_PER_SEC
@@ -330,7 +331,7 @@ def benchmark():
                 rows.append(output)
     rows.append(benchmark_time_tlp(INSTANCES[-1]))
 
-    with open(f"out/benchmark{datetime.now()}.csv", "w", newline="") as csvfile:
+    with open(Path(__file__).parent / f"out/benchmark{datetime.now()}.csv", "w", newline="") as csvfile:
         fieldnames = [
             "name",
             "extra",
