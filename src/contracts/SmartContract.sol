@@ -76,7 +76,7 @@ contract SmartContract {
 
     }
 
-    function commitments() public returns (bytes[] memory) {
+    function commitments() public view returns (bytes[] memory) {
         bytes[] memory commitments = new bytes[](amountOfPuzzleParts);
         for (uint i = 0; i < amountOfPuzzleParts; i++) {
             commitments[i] = puzzleParts[i].commitment;
@@ -91,7 +91,7 @@ contract SmartContract {
         }
     }
 
-    function coins() public returns (uint[] memory) {
+    function coins() public view returns (uint[] memory) {
         uint[] memory coins = new uint[](amountOfPuzzleParts);
         for (uint i = 0; i < amountOfPuzzleParts; i++) {
             coins[i] = puzzleParts[i].coin;
@@ -99,7 +99,7 @@ contract SmartContract {
         return coins;
     }
 
-    function upperBounds() public returns (uint[] memory) {
+    function upperBounds() public view returns (uint[] memory) {
         uint[] memory upperBounds = new uint[](amountOfPuzzleParts);
         for (uint i = 0; i < amountOfPuzzleParts; i++) {
             upperBounds[i] = puzzleParts[i].upperBound;
@@ -115,11 +115,28 @@ contract SmartContract {
         nextUnsolvedPuzzlePart++;
     }
 
-    function getSolutionAt(uint puzzlePartIndex) public view returns (bytes memory) {
-        return puzzleParts[puzzlePartIndex].solution;
+    function getCommitmentAt(uint puzzlePartIndex) public view returns (bytes memory) {
+        require(puzzlePartIndex < amountOfPuzzleParts, "The puzzle part index is out of bounds.");
+        require(puzzleParts[puzzlePartIndex].commitment.length > 0, "The commitment is not set yet.");
+        return puzzleParts[puzzlePartIndex].commitment;
     }
 
-    function solutions() public returns (bytes[] memory, bytes[] memory, uint[] memory) {
+    function getSolutionAt(uint puzzlePartIndex) public returns (bytes memory, bytes memory, uint) {
+        require(puzzlePartIndex < amountOfPuzzleParts, "The puzzle part index is out of bounds.");
+
+        bytes memory solutionMemory = puzzleParts[puzzlePartIndex].solution;
+        bytes memory witnessMemory = puzzleParts[puzzlePartIndex].witness;
+        uint timestamp = puzzleParts[puzzlePartIndex].timestamp;
+
+        return (solutionMemory, witnessMemory, timestamp);
+    }
+
+    function getUpperBoundAt(uint puzzlePartIndex) public view returns (uint) {
+        require(puzzlePartIndex < amountOfPuzzleParts, "The puzzle part index is out of bounds.");
+        return puzzleParts[puzzlePartIndex].upperBound;
+    }
+
+    function solutions() public view returns (bytes[] memory, bytes[] memory, uint[] memory) {
         bytes[] memory solutions = new bytes[](amountOfPuzzleParts);
         bytes[] memory witnesses = new bytes[](amountOfPuzzleParts);
         uint[] memory timestamps = new uint[](amountOfPuzzleParts);

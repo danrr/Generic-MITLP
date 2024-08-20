@@ -12,7 +12,7 @@ from web3.contract.contract import ContractFunction, HexBytes  # pyright: ignore
 from web3.types import TxParams, TxReceipt
 
 from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests
-from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solutions, SC_UpperBounds
+from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solution, SC_Solutions, SC_UpperBounds
 
 SOLC_VERSION = "0.8.0"
 CONTRACT_NAME = "SmartContract"
@@ -48,6 +48,9 @@ class EthereumSC:
         if not self._has_succeeded(self._contract.functions.setCommitments(commitments)):
             raise RuntimeError("Commitments were not set correctly")
 
+    def get_commitment_at(self, i: int) -> TLP_Digest:
+        return self._contract.functions.getCommitmentAt(i).call()
+
     @property
     def coins(self) -> SC_Coins:
         return self._contract.functions.coins().call()
@@ -55,6 +58,9 @@ class EthereumSC:
     @property
     def upper_bounds(self) -> SC_UpperBounds:
         return self._contract.functions.upperBounds().call()
+
+    def get_upper_bound_at(self, i: int) -> int:
+        return self._contract.functions.getUpperBoundAt(i).call()
 
     @property
     def start_time(self) -> int:
@@ -65,6 +71,9 @@ class EthereumSC:
         res = self._contract.functions.solutions().call()
 
         return list(zip(res[0], res[1], res[2]))
+
+    def get_solution_at(self, i: int) -> SC_Solution:
+        return self._contract.functions.getSolutionAt(i).call()
 
     @property  # pyright: ignore[reportPropertyTypeMismatch]
     def initial_timestamp(self) -> int:
@@ -113,7 +122,7 @@ class EthereumSC:
             raise RuntimeError("Solution was not added correctly")
 
     def get_message_at(self, i: int) -> GCTLP_Encrypted_Message:
-        return self._contract.functions.getSolutionAt(i).call()
+        return self._contract.functions.getSolutionAt(i).call()[0]
 
     def pay(self, i: int) -> None:
         if not self._has_succeeded(self._contract.functions.pay(i)):
