@@ -159,7 +159,7 @@ class EthereumSC:
 
     # Private Methods #
 
-    _SC_PUZZLE_BATCH_SIZE: int = 300
+    _SC_PUZZLE_BATCH_SIZE: int = 250
 
     def _compile_contract(self) -> tuple[str, str]:
         """
