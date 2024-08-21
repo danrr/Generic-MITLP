@@ -34,9 +34,9 @@ contract SmartContract {
     Status public contractStatus = Status.Setup;
 
     mapping(uint => PuzzlePart) public puzzleParts;
-    uint amountOfPuzzleParts;
+    uint public amountOfPuzzleParts;
     uint public nextUnsolvedPuzzlePart = 0;
-    address owner;
+    address public owner;
 
     constructor() public payable {
         owner = msg.sender;
