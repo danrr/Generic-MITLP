@@ -9,7 +9,7 @@ from solcx import compile_files, install_solc  # pyright: ignore[reportUnknownVa
 from web3 import EthereumTesterProvider, Web3
 from web3.contract import Contract  # pyright: ignore[reportPrivateImportUsage]
 from web3.contract.contract import ContractFunction, HexBytes  # pyright: ignore[reportPrivateImportUsage]
-from web3.types import TxParams, TxReceipt
+from web3.types import TxParams, TxReceipt, Wei
 
 from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests
 from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solution, SC_Solutions, SC_UpperBounds
@@ -213,7 +213,14 @@ class EthereumSC:
 
         return tx_receipt["contractAddress"]
 
-    def _initialize_in_batches(self, coins, start_time, extra_times, upper_bounds, helper_id):
+    def _initialize_in_batches(
+        self,
+        coins: SC_Coins,
+        start_time: int,
+        extra_times: SC_ExtraTime,
+        upper_bounds: SC_UpperBounds,
+        helper_id: int | ChecksumAddress,
+    ) -> None:
         # Ensure that all lists have the same length
         assert len(coins) == len(extra_times) == len(upper_bounds), "All input lists must have the same length"
 
@@ -263,7 +270,7 @@ class EthereumSC:
         assert self.web3.is_connected()
 
     def _has_succeeded(self, tx: ContractFunction, value: int = 0) -> bool:
-        props = TxParams({"from": self.account, "value": value})
+        props = TxParams({"from": self.account, "value": Wei(value)})
 
         tx_hash = tx.transact(props)
         return self.web3.eth.wait_for_transaction_receipt(tx_hash)["status"] == 1
