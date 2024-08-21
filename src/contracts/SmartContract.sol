@@ -63,10 +63,10 @@ contract SmartContract {
         }
 
         uint receivedValue = msg.value;
-        uint currentIndex = amountOfPuzzleParts;
+        uint startIndex = amountOfPuzzleParts;
 
         for (uint i = 0; i < _coins.length; i++) {
-            puzzleParts[currentIndex + i] = PuzzlePart({
+            puzzleParts[startIndex + i] = PuzzlePart({
                 coin: _coins[i],
                 upperBound: _upperBounds[i],
                 extraTime: _extraTimes[i],
