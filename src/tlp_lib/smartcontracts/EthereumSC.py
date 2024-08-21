@@ -187,9 +187,10 @@ class EthereumSC:
         contract = ContractFactory.constructor(
             coins, start_time, list(map(int, extra_times)), list(map(int, upper_bounds)), helper_id
         )
+        contract = ContractFactory.constructor()
 
         tx_hash: HexBytes = contract.transact(
-            {"from": self.account, "value": functools.reduce(lambda x, y: x + y, coins)}
+            {"from": self.account}
         )
 
         tx_receipt: TxReceipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
@@ -197,6 +198,13 @@ class EthereumSC:
         self._contract = self.web3.eth.contract(
             address=tx_receipt["contractAddress"], abi=abi
         )  # pyright: ignore[reportAttributeAccessIssue]
+
+        if not self._has_succeeded(self._contract.functions.initialize(coins, start_time, list(map(int,
+                                                                                                   extra_times)), list(map(int, upper_bounds)), helper_id), functools.reduce(lambda x, y: x + y, coins)):
+            raise RuntimeError("Initialise has failed")
+
+        print("Contract deployed at address: ", tx_receipt["contractAddress"])
+
         return tx_receipt["contractAddress"]
 
     def _initiate_network(self, web3: Optional[Web3] = None) -> None:
@@ -214,8 +222,8 @@ class EthereumSC:
 
         assert self.web3.is_connected()
 
-    def _has_succeeded(self, tx: ContractFunction) -> bool:
-        props = TxParams({"from": self.account})
+    def _has_succeeded(self, tx: ContractFunction, value: int = 0) -> bool:
+        props = TxParams({"from": self.account, "value": value})
 
         tx_hash = tx.transact(props)
         return self.web3.eth.wait_for_transaction_receipt(tx_hash)["status"] == 1

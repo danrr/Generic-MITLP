@@ -35,13 +35,17 @@ contract SmartContract {
     uint public nextUnsolvedPuzzlePart = 0;
     address owner;
 
-    constructor(
+    constructor() public payable {
+        owner = msg.sender;
+    }
+
+    function initialize(
         uint[] memory _coins,
         uint _startTime,
         uint[] memory _extraTimes,
         uint[] memory _upperBounds,
         address _helperID
-    ) public payable {
+    ) public payable onlyOwner {
 
         require(_coins.length == _upperBounds.length, "The length of the coins and upperBounds arrays should be the same.");
         require(_coins.length > 0, "The length of the coins array should be greater than 0.");
@@ -65,16 +69,13 @@ contract SmartContract {
                 paidOut: false
             });
             receivedValue -= _coins[i];
-
-            owner = msg.sender;
         }
 
         require(receivedValue == 0, "The total value sent should be equal to the sum of the coins.");
 
-
         amountOfPuzzleParts = _coins.length;
-
     }
+
 
     function commitments() public view returns (bytes[] memory) {
         bytes[] memory commitments = new bytes[](amountOfPuzzleParts);
