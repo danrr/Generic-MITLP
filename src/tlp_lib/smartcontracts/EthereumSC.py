@@ -1,4 +1,4 @@
-import functools
+import itertools
 from logging import getLogger
 from pathlib import Path
 from typing import Literal, Optional, Self
@@ -45,21 +45,14 @@ class EthereumSC:
 
     @commitments.setter
     def commitments(self, commitments: TLP_Digests):
-        total_commitments = len(commitments)
         start_index = 0
-
-        while start_index < total_commitments:
-            end_index = min(start_index + self._SC_PUZZLE_BATCH_SIZE, total_commitments)
-
-            # Create a slice for the current batch
-            commitments_batch = commitments[start_index:end_index]
+        for commitments_batch in itertools.batched(commitments, self._SC_PUZZLE_BATCH_SIZE):
 
             # Call the setCommitments function for the current batch with the appropriate start index
             if not self._has_succeeded(self._contract.functions.setCommitments(commitments_batch, start_index)):
                 raise RuntimeError(f"Commitments were not set correctly for batch starting at index {start_index}")
 
-            # Update start index for the next batch
-            start_index = end_index
+            start_index += len(commitments_batch)
 
     def get_commitment_at(self, i: int) -> TLP_Digest:
         return self._contract.functions.getCommitmentAt(i).call()
@@ -224,19 +217,12 @@ class EthereumSC:
         # Ensure that all lists have the same length
         assert len(coins) == len(extra_times) == len(upper_bounds), "All input lists must have the same length"
 
-        total_parts = len(coins)
-        start_index = 0
+        batches = [itertools.batched(lst, self._SC_PUZZLE_BATCH_SIZE) for lst in (coins, extra_times, upper_bounds)]
 
-        while start_index < total_parts:
-            end_index = min(start_index + self._SC_PUZZLE_BATCH_SIZE, total_parts)
-
-            # Create a slice for the current batch
-            coins_batch = coins[start_index:end_index]
-            extra_times_batch = extra_times[start_index:end_index]
-            upper_bounds_batch = upper_bounds[start_index:end_index]
+        for coins_batch, extra_times_batch, upper_bounds_batch in zip(*batches):
 
             # Calculate the value to send with this batch
-            value_to_send = functools.reduce(lambda x, y: x + y, coins_batch)
+            value_to_send = sum(coins_batch)
 
             # Call the initialize function for the current batch
             if not self._has_succeeded(
@@ -249,10 +235,7 @@ class EthereumSC:
                 ),
                 value_to_send,
             ):
-                raise RuntimeError("Initialize has failed for batch starting at index {}".format(start_index))
-
-            # Update start index for the next batch
-            start_index = end_index
+                raise RuntimeError("Initialize has failed for batch")
 
     def _initiate_network(self, web3: Optional[Web3] = None) -> None:
         """
