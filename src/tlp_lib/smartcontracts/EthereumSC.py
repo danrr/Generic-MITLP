@@ -45,8 +45,21 @@ class EthereumSC:
 
     @commitments.setter
     def commitments(self, commitments: TLP_Digests):
-        if not self._has_succeeded(self._contract.functions.setCommitments(commitments)):
-            raise RuntimeError("Commitments were not set correctly")
+        total_commitments = len(commitments)
+        start_index = 0
+
+        while start_index < total_commitments:
+            end_index = min(start_index + self._SC_PUZZLE_BATCH_SIZE, total_commitments)
+
+            # Create a slice for the current batch
+            commitments_batch = commitments[start_index:end_index]
+
+            # Call the setCommitments function for the current batch with the appropriate start index
+            if not self._has_succeeded(self._contract.functions.setCommitments(commitments_batch, start_index)):
+                raise RuntimeError(f"Commitments were not set correctly for batch starting at index {start_index}")
+
+            # Update start index for the next batch
+            start_index = end_index
 
     def get_commitment_at(self, i: int) -> TLP_Digest:
         return self._contract.functions.getCommitmentAt(i).call()
@@ -146,6 +159,8 @@ class EthereumSC:
 
     # Private Methods #
 
+    _SC_PUZZLE_BATCH_SIZE: int = 300
+
     def _compile_contract(self) -> tuple[str, str]:
         """
         Loads in the ABI of the EDTLP contract
@@ -184,9 +199,6 @@ class EthereumSC:
         """
         ContractFactory = self.web3.eth.contract(abi=abi, bytecode=bytecode)
 
-        contract = ContractFactory.constructor(
-            coins, start_time, list(map(int, extra_times)), list(map(int, upper_bounds)), helper_id
-        )
         contract = ContractFactory.constructor()
 
         tx_hash: HexBytes = contract.transact(
@@ -199,13 +211,40 @@ class EthereumSC:
             address=tx_receipt["contractAddress"], abi=abi
         )  # pyright: ignore[reportAttributeAccessIssue]
 
-        if not self._has_succeeded(self._contract.functions.initialize(coins, start_time, list(map(int,
-                                                                                                   extra_times)), list(map(int, upper_bounds)), helper_id), functools.reduce(lambda x, y: x + y, coins)):
-            raise RuntimeError("Initialise has failed")
-
-        print("Contract deployed at address: ", tx_receipt["contractAddress"])
+        self._initialize_in_batches(coins, start_time, extra_times, upper_bounds, helper_id)
 
         return tx_receipt["contractAddress"]
+
+    def _initialize_in_batches(self, coins, start_time, extra_times, upper_bounds, helper_id):
+        # Ensure that all lists have the same length
+        assert len(coins) == len(extra_times) == len(upper_bounds), "All input lists must have the same length"
+
+        total_parts = len(coins)
+        start_index = 0
+
+        while start_index < total_parts:
+            end_index = min(start_index + self._SC_PUZZLE_BATCH_SIZE, total_parts)
+
+            # Create a slice for the current batch
+            coins_batch = coins[start_index:end_index]
+            extra_times_batch = extra_times[start_index:end_index]
+            upper_bounds_batch = upper_bounds[start_index:end_index]
+
+            # Calculate the value to send with this batch
+            value_to_send = functools.reduce(lambda x, y: x + y, coins_batch)
+
+            # Call the initialize function for the current batch
+            if not self._has_succeeded(self._contract.functions.initialize(
+                    coins_batch,
+                    start_time,
+                    list(map(int, extra_times_batch)),
+                    list(map(int, upper_bounds_batch)),
+                    helper_id
+            ), value_to_send):
+                raise RuntimeError("Initialize has failed for batch starting at index {}".format(start_index))
+
+            # Update start index for the next batch
+            start_index = end_index
 
     def _initiate_network(self, web3: Optional[Web3] = None) -> None:
         """
