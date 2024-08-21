@@ -201,9 +201,7 @@ class EthereumSC:
 
         contract = ContractFactory.constructor()
 
-        tx_hash: HexBytes = contract.transact(
-            {"from": self.account}
-        )
+        tx_hash: HexBytes = contract.transact({"from": self.account})
 
         tx_receipt: TxReceipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -234,13 +232,16 @@ class EthereumSC:
             value_to_send = functools.reduce(lambda x, y: x + y, coins_batch)
 
             # Call the initialize function for the current batch
-            if not self._has_succeeded(self._contract.functions.initialize(
+            if not self._has_succeeded(
+                self._contract.functions.initialize(
                     coins_batch,
                     start_time,
                     list(map(int, extra_times_batch)),
                     list(map(int, upper_bounds_batch)),
-                    helper_id
-            ), value_to_send):
+                    helper_id,
+                ),
+                value_to_send,
+            ):
                 raise RuntimeError("Initialize has failed for batch starting at index {}".format(start_index))
 
             # Update start index for the next batch
