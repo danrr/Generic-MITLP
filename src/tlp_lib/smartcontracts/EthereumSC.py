@@ -226,14 +226,14 @@ class EthereumSC:
 
             # Call the initialize function for the current batch
             if not self._has_succeeded(
-                self._contract.functions.initialize(
-                    coins_batch,
-                    start_time,
-                    list(map(int, extra_times_batch)),
-                    list(map(int, upper_bounds_batch)),
-                    helper_id,
-                ),
-                value_to_send,
+                    self._contract.functions.initialize(
+                        coins_batch,
+                        start_time,
+                        list(map(int, extra_times_batch)),
+                        list(map(int, upper_bounds_batch)),
+                        helper_id,
+                    ),
+                    value_to_send,
             ):
                 raise RuntimeError("Initialize has failed for batch")
 
@@ -245,7 +245,10 @@ class EthereumSC:
         """
         #
         if web3 is None:
-            provider = EthereumTesterProvider(ethereum_tester=EthereumTester(backend=PyEVMBackend()))
+            provider = EthereumTesterProvider(ethereum_tester=EthereumTester(backend=PyEVMBackend.from_mnemonic(
+                'test test test test test test test test test test test junk',
+                genesis_state_overrides={'balance': Wei(1_000_000 * 10 ** 18)
+                                         })))
             web3 = Web3(provider)
 
         self.web3 = web3
@@ -253,7 +256,7 @@ class EthereumSC:
         assert self.web3.is_connected()
 
     def _has_succeeded(self, tx: ContractFunction, value: int = 0) -> bool:
-        props = TxParams({"from": self.account, "value": Wei(value)})
+        props = TxParams({"from": self.account, "value": Wei(value), "maxFeePerGas": 1_000_000_000_000_000, "maxPriorityFeePerGas": 1_000_000_000_000_00})
 
         tx_hash = tx.transact(props)
         return self.web3.eth.wait_for_transaction_receipt(tx_hash)["status"] == 1
