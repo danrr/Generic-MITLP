@@ -243,12 +243,13 @@ class EthereumSC:
         @:param provider: The provider to use for the connection
         If no provider is given, use the `EthereumTesterProvider` which runs a local testnet
         """
-        #
         if web3 is None:
-            provider = EthereumTesterProvider(ethereum_tester=EthereumTester(backend=PyEVMBackend.from_mnemonic(
-                'test test test test test test test test test test test junk',
-                genesis_state_overrides={'balance': Wei(1_000_000 * 10 ** 18)
-                                         })))
+            self._backend = PyEVMBackend.from_mnemonic(
+                "test test test test test test test test test test test junk",
+                genesis_state_overrides={"balance": Wei(1_000_000 * 10**18)},
+            )
+
+            provider = EthereumTesterProvider(ethereum_tester=EthereumTester(backend=self._backend))
             web3 = Web3(provider)
 
         self.web3 = web3
@@ -256,7 +257,30 @@ class EthereumSC:
         assert self.web3.is_connected()
 
     def _has_succeeded(self, tx: ContractFunction, value: int = 0) -> bool:
-        props = TxParams({"from": self.account, "value": Wei(value), "maxFeePerGas": 1_000_000_000_000_000, "maxPriorityFeePerGas": 1_000_000_000_000_00})
+
+        max_fee_per_gas = 1_000_000_000
+        max_priority_fee_per_gas = 1_000_000_000
+
+        self._gas_fee_control(1_000_000_000)
+
+        props = TxParams({
+            "from": self.account,
+            "value": Wei(value),
+            "maxFeePerGas": max_fee_per_gas,
+            "maxPriorityFeePerGas": max_priority_fee_per_gas,
+        })
 
         tx_hash = tx.transact(props)
         return self.web3.eth.wait_for_transaction_receipt(tx_hash)["status"] == 1
+
+    def _gas_fee_control(self, max_fee_per_gas: int):
+        """
+        Checks the base fee per gas and mines a block if it is too high to prevent the transaction from failing
+        If the backend is not set, this function does nothing
+        :return:
+        """
+        latest_block = self.web3.eth.get_block("latest")
+        base_fee_per_gas = latest_block["baseFeePerGas"]
+
+        if base_fee_per_gas > max_fee_per_gas * 0.9 and self._backend is not None:
+            self._backend.mine_blocks(1)
