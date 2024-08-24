@@ -1,4 +1,4 @@
-import functools
+import itertools
 from logging import getLogger
 from pathlib import Path
 from typing import Literal, Optional, Self
@@ -9,7 +9,7 @@ from solcx import compile_files, install_solc  # pyright: ignore[reportUnknownVa
 from web3 import EthereumTesterProvider, Web3
 from web3.contract import Contract  # pyright: ignore[reportPrivateImportUsage]
 from web3.contract.contract import ContractFunction, HexBytes  # pyright: ignore[reportPrivateImportUsage]
-from web3.types import TxParams, TxReceipt
+from web3.types import TxParams, TxReceipt, Wei
 
 from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests
 from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solution, SC_Solutions, SC_UpperBounds
@@ -26,6 +26,7 @@ class EthereumSC:
     _account: Optional[ChecksumAddress]
     __contract: Optional[Contract] = None
     _contract_path: str
+    _backend: Optional[PyEVMBackend] = None
 
     def __init__(
         self, account: Optional[ChecksumAddress] = None, web3: Optional[Web3] = None, contract_path: str = CONTRACT_PATH
@@ -45,8 +46,14 @@ class EthereumSC:
 
     @commitments.setter
     def commitments(self, commitments: TLP_Digests):
-        if not self._has_succeeded(self._contract.functions.setCommitments(commitments)):
-            raise RuntimeError("Commitments were not set correctly")
+        start_index = 0
+        for commitments_batch in itertools.batched(commitments, self._SC_PUZZLE_BATCH_SIZE):
+
+            # Call the setCommitments function for the current batch with the appropriate start index
+            if not self._has_succeeded(self._contract.functions.setCommitments(commitments_batch, start_index)):
+                raise RuntimeError(f"Commitments were not set correctly for batch starting at index {start_index}")
+
+            start_index += len(commitments_batch)
 
     def get_commitment_at(self, i: int) -> TLP_Digest:
         return self._contract.functions.getCommitmentAt(i).call()
@@ -146,6 +153,8 @@ class EthereumSC:
 
     # Private Methods #
 
+    _SC_PUZZLE_BATCH_SIZE: int = 250
+
     def _compile_contract(self) -> tuple[str, str]:
         """
         Loads in the ABI of the EDTLP contract
@@ -184,20 +193,50 @@ class EthereumSC:
         """
         ContractFactory = self.web3.eth.contract(abi=abi, bytecode=bytecode)
 
-        contract = ContractFactory.constructor(
-            coins, start_time, list(map(int, extra_times)), list(map(int, upper_bounds)), helper_id
-        )
+        contract = ContractFactory.constructor()
 
-        tx_hash: HexBytes = contract.transact(
-            {"from": self.account, "value": functools.reduce(lambda x, y: x + y, coins)}
-        )
+        tx_hash: HexBytes = contract.transact({"from": self.account})
 
         tx_receipt: TxReceipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
 
         self._contract = self.web3.eth.contract(
             address=tx_receipt["contractAddress"], abi=abi
         )  # pyright: ignore[reportAttributeAccessIssue]
+
+        self._initialize_in_batches(coins, start_time, extra_times, upper_bounds, helper_id)
+
         return tx_receipt["contractAddress"]
+
+    def _initialize_in_batches(
+        self,
+        coins: SC_Coins,
+        start_time: int,
+        extra_times: SC_ExtraTime,
+        upper_bounds: SC_UpperBounds,
+        helper_id: int | ChecksumAddress,
+    ) -> None:
+        # Ensure that all lists have the same length
+        assert len(coins) == len(extra_times) == len(upper_bounds), "All input lists must have the same length"
+
+        batches = [itertools.batched(lst, self._SC_PUZZLE_BATCH_SIZE) for lst in (coins, extra_times, upper_bounds)]
+
+        for coins_batch, extra_times_batch, upper_bounds_batch in zip(*batches):
+
+            # Calculate the value to send with this batch
+            value_to_send = sum(coins_batch)
+
+            # Call the initialize function for the current batch
+            if not self._has_succeeded(
+                self._contract.functions.initialize(
+                    coins_batch,
+                    start_time,
+                    list(map(int, extra_times_batch)),
+                    list(map(int, upper_bounds_batch)),
+                    helper_id,
+                ),
+                value_to_send,
+            ):
+                raise RuntimeError("Initialize has failed for batch")
 
     def _initiate_network(self, web3: Optional[Web3] = None) -> None:
         """
@@ -205,17 +244,43 @@ class EthereumSC:
         @:param provider: The provider to use for the connection
         If no provider is given, use the `EthereumTesterProvider` which runs a local testnet
         """
-        #
         if web3 is None:
-            provider = EthereumTesterProvider(ethereum_tester=EthereumTester(backend=PyEVMBackend()))
+            self._backend = PyEVMBackend.from_mnemonic(
+                "test test test test test test test test test test test junk",
+                genesis_state_overrides={"balance": Wei(1_000_000 * 10**18)},
+            )
+
+            provider = EthereumTesterProvider(ethereum_tester=EthereumTester(backend=self._backend))
             web3 = Web3(provider)
 
         self.web3 = web3
 
         assert self.web3.is_connected()
 
-    def _has_succeeded(self, tx: ContractFunction) -> bool:
-        props = TxParams({"from": self.account})
+    def _has_succeeded(self, tx: ContractFunction, value: int = 0) -> bool:
+        max_fee_per_gas = 1_000_000_000
+        max_priority_fee_per_gas = 1_000_000_000
+
+        self._gas_fee_control(1_000_000_000)
+
+        props: TxParams = {
+            "from": self.account,
+            "value": Wei(value),
+            "maxFeePerGas": Wei(max_fee_per_gas),
+            "maxPriorityFeePerGas": Wei(max_priority_fee_per_gas),
+        }
 
         tx_hash = tx.transact(props)
         return self.web3.eth.wait_for_transaction_receipt(tx_hash)["status"] == 1
+
+    def _gas_fee_control(self, max_fee_per_gas: int):
+        """
+        Checks the base fee per gas and mines a block if it is too high to prevent the transaction from failing
+        If the backend is not set, this function does nothing
+        :return:
+        """
+        latest_block = self.web3.eth.get_block("latest")
+        base_fee_per_gas = latest_block["baseFeePerGas"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+
+        if base_fee_per_gas > max_fee_per_gas * 0.9 and self._backend is not None:
+            self._backend.mine_blocks(1)

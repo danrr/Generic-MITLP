@@ -15,6 +15,8 @@ contract SmartContract {
         bool paidOut;
     }
 
+    enum Status { Setup, SettingCommitments, Solving }
+
     modifier onlyHelper() {
         require(msg.sender == helperID, "Only the helper can call this function.");
         _;
@@ -29,31 +31,42 @@ contract SmartContract {
     uint public extraTime;
     address public helperID;
     uint public initialTimestamp;
+    Status public contractStatus = Status.Setup;
 
     mapping(uint => PuzzlePart) public puzzleParts;
-    uint amountOfPuzzleParts;
+    uint public amountOfPuzzleParts;
     uint public nextUnsolvedPuzzlePart = 0;
-    address owner;
+    address public owner;
 
-    constructor(
+    constructor() public payable {
+        owner = msg.sender;
+    }
+
+    function initialize(
         uint[] memory _coins,
         uint _startTime,
         uint[] memory _extraTimes,
         uint[] memory _upperBounds,
         address _helperID
-    ) public payable {
+    ) public payable onlyOwner {
 
         require(_coins.length == _upperBounds.length, "The length of the coins and upperBounds arrays should be the same.");
         require(_coins.length > 0, "The length of the coins array should be greater than 0.");
         require(_helperID != address(0), "The helper ID should not be the zero address.");
+        require(contractStatus == Status.Setup, "Contract setup is already completed.");
 
-        startTime = _startTime;
-        helperID = _helperID;
-        initialTimestamp = block.timestamp;
+        if (amountOfPuzzleParts == 0) {
+            startTime = _startTime;
+            helperID = _helperID;
+            initialTimestamp = block.timestamp;
+            owner = msg.sender;
+        }
 
         uint receivedValue = msg.value;
+        uint startIndex = amountOfPuzzleParts;
+
         for (uint i = 0; i < _coins.length; i++) {
-            puzzleParts[i] = PuzzlePart({
+            puzzleParts[startIndex + i] = PuzzlePart({
                 coin: _coins[i],
                 upperBound: _upperBounds[i],
                 extraTime: _extraTimes[i],
@@ -65,16 +78,13 @@ contract SmartContract {
                 paidOut: false
             });
             receivedValue -= _coins[i];
-
-            owner = msg.sender;
         }
 
         require(receivedValue == 0, "The total value sent should be equal to the sum of the coins.");
 
-
-        amountOfPuzzleParts = _coins.length;
-
+        amountOfPuzzleParts += _coins.length;
     }
+
 
     function commitments() public view returns (bytes[] memory) {
         bytes[] memory commitments = new bytes[](amountOfPuzzleParts);
@@ -84,10 +94,30 @@ contract SmartContract {
         return commitments;
     }
 
-    function setCommitments(bytes[] calldata _commitments) public onlyHelper {
-        require(_commitments.length == amountOfPuzzleParts, "The length of the commitments array should be equal to the amount of puzzle parts.");
-        for (uint i = 0; i < amountOfPuzzleParts; i++) {
-            puzzleParts[i].commitment = _commitments[i];
+    function setCommitments(bytes[] calldata _commitments, uint startIndex) public onlyHelper {
+        // Change status to SettingCommitments on the first call
+        if (contractStatus == Status.Setup) {
+            contractStatus = Status.SettingCommitments;
+        }
+
+        require(contractStatus == Status.SettingCommitments, "Contract is not in SettingCommitments status.");
+        require(startIndex + _commitments.length <= amountOfPuzzleParts, "Commitments exceed the number of puzzle parts.");
+
+        // Check that the value at startIndex-1 is not 0 unless startIndex is 0
+        if (startIndex > 0) {
+            require(bytes(puzzleParts[startIndex - 1].commitment).length != 0, "Previous puzzle part commitment must be set.");
+        }
+
+        for (uint i = 0; i < _commitments.length; i++) {
+            uint index = startIndex + i;
+            require(index < amountOfPuzzleParts, "Index out of bounds.");
+            require(bytes(puzzleParts[index].commitment).length == 0, "Commitment has already been set.");
+            puzzleParts[index].commitment = _commitments[i];
+        }
+
+        // Check if all commitments have been set
+        if (startIndex + _commitments.length == amountOfPuzzleParts) {
+            contractStatus = Status.Solving;
         }
     }
 
@@ -108,10 +138,14 @@ contract SmartContract {
     }
 
     function addSolution(bytes calldata solution, bytes calldata witness) public {
+        require(contractStatus == Status.Solving, "Contract is not in Solving status.");
+        require(nextUnsolvedPuzzlePart < amountOfPuzzleParts, "All puzzle parts have already been solved.");
+
         puzzleParts[nextUnsolvedPuzzlePart].solution = solution;
         puzzleParts[nextUnsolvedPuzzlePart].witness = witness;
         puzzleParts[nextUnsolvedPuzzlePart].timestamp = block.timestamp;
         puzzleParts[nextUnsolvedPuzzlePart].solver = msg.sender;
+
         nextUnsolvedPuzzlePart++;
     }
 

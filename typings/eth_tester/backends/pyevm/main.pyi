@@ -67,13 +67,13 @@ class PyEVMBackend(BaseChainBackend):
     @classmethod
     def from_mnemonic(
         cls,
-        mnemonic,
+        mnemonic: str,
         genesis_state_overrides: Incomplete | None = None,
         num_accounts: Incomplete | None = None,
         genesis_parameters: Incomplete | None = None,
         vm_configuration: Incomplete | None = None,
         hd_path: Incomplete | None = None,
-    ): ...
+    ) -> PyEVMBackend: ...
     @classmethod
     def generate_genesis_params(cls, overrides: Incomplete | None = None): ...
     @classmethod
