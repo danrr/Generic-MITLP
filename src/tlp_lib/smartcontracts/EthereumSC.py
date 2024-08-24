@@ -26,6 +26,7 @@ class EthereumSC:
     _account: Optional[ChecksumAddress]
     __contract: Optional[Contract] = None
     _contract_path: str
+    _backend: Optional[PyEVMBackend] = None
 
     def __init__(
         self, account: Optional[ChecksumAddress] = None, web3: Optional[Web3] = None, contract_path: str = CONTRACT_PATH
@@ -226,14 +227,14 @@ class EthereumSC:
 
             # Call the initialize function for the current batch
             if not self._has_succeeded(
-                    self._contract.functions.initialize(
-                        coins_batch,
-                        start_time,
-                        list(map(int, extra_times_batch)),
-                        list(map(int, upper_bounds_batch)),
-                        helper_id,
-                    ),
-                    value_to_send,
+                self._contract.functions.initialize(
+                    coins_batch,
+                    start_time,
+                    list(map(int, extra_times_batch)),
+                    list(map(int, upper_bounds_batch)),
+                    helper_id,
+                ),
+                value_to_send,
             ):
                 raise RuntimeError("Initialize has failed for batch")
 
@@ -257,18 +258,17 @@ class EthereumSC:
         assert self.web3.is_connected()
 
     def _has_succeeded(self, tx: ContractFunction, value: int = 0) -> bool:
-
         max_fee_per_gas = 1_000_000_000
         max_priority_fee_per_gas = 1_000_000_000
 
         self._gas_fee_control(1_000_000_000)
 
-        props = TxParams({
+        props: TxParams = {
             "from": self.account,
             "value": Wei(value),
-            "maxFeePerGas": max_fee_per_gas,
-            "maxPriorityFeePerGas": max_priority_fee_per_gas,
-        })
+            "maxFeePerGas": Wei(max_fee_per_gas),
+            "maxPriorityFeePerGas": Wei(max_priority_fee_per_gas),
+        }
 
         tx_hash = tx.transact(props)
         return self.web3.eth.wait_for_transaction_receipt(tx_hash)["status"] == 1
@@ -280,7 +280,7 @@ class EthereumSC:
         :return:
         """
         latest_block = self.web3.eth.get_block("latest")
-        base_fee_per_gas = latest_block["baseFeePerGas"]
+        base_fee_per_gas = latest_block["baseFeePerGas"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         if base_fee_per_gas > max_fee_per_gas * 0.9 and self._backend is not None:
             self._backend.mine_blocks(1)

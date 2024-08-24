@@ -324,8 +324,7 @@ def benchmark():
                 runnables,
             )
 
-            if instances < 1000:
-                rows.append(benchmark_time_edtlp(instances, EthereumSC()))
+            rows.append(benchmark_time_edtlp(instances, EthereumSC()))
 
             for output in outputs.get():
                 rows.append(output)
