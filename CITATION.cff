@@ -3,7 +3,9 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: Ristea
     given-names: Dan
+    affiliation: "University College London"
   - family-names: Grigor
     given-names: Artem
+    affiliation: "University College London"
 title: "TLP_lib"
 version: 0.1.0
