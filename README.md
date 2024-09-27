@@ -1,4 +1,4 @@
-# Generic-MITLP
+# TLP_lib
 
 This repository contains the implementation of multiple flavours of time-lock puzzles:
 - [Delegated Generic Multiple Instance Time-Lock Puzzle](./static/e_Print__of___D_Time_lock_puzzle.pdf)
