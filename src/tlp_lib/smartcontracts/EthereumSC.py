@@ -11,8 +11,9 @@ from web3.contract import Contract  # pyright: ignore[reportPrivateImportUsage]
 from web3.contract.contract import ContractFunction, HexBytes  # pyright: ignore[reportPrivateImportUsage]
 from web3.types import TxParams, TxReceipt, Wei
 
-from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests
-from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solution, SC_Solutions, SC_UpperBounds
+from tlp_lib import GCTLP
+from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests, GCTLP_Encrypted_Messages
+from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_UpperBounds
 
 SOLC_VERSION = "0.8.0"
 CONTRACT_NAME = "SmartContract"
@@ -74,12 +75,10 @@ class EthereumSC:
         return self._contract.functions.startTime().call()
 
     @property  # pyright: ignore
-    def solutions(self) -> SC_Solutions:
-        res = self._contract.functions.solutions().call()
+    def solutions(self) -> GCTLP_Encrypted_Messages:
+        return self._contract.functions.solutions().call()
 
-        return list(zip(res[0], res[1], res[2]))
-
-    def get_solution_at(self, i: int) -> SC_Solution:
+    def get_solution_at(self, i: int) -> GCTLP_Encrypted_Message:
         return self._contract.functions.getSolutionAt(i).call()
 
     @property  # pyright: ignore[reportPropertyTypeMismatch]
@@ -104,11 +103,15 @@ class EthereumSC:
         start_time: int,
         extra_time: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
+        gctlp: GCTLP,
         helper_id: int | ChecksumAddress,
     ) -> Self:
         """
         Deploys the contract to the network and deposit the coins into the contract
         """
+        # Check that the hash function is Keccak256
+        if gctlp.hash.name != "KECCAK256":
+            raise ValueError("The hash function must be Keccak256")
 
         abi, sc_bytecode = self._compile_contract()
         contract_address = self._deploy_contract(
@@ -128,12 +131,11 @@ class EthereumSC:
         if not self._has_succeeded(self._contract.functions.addSolution(solution, witness)):
             raise RuntimeError("Solution was not added correctly")
 
-    def get_message_at(self, i: int) -> GCTLP_Encrypted_Message:
-        return self._contract.functions.getSolutionAt(i).call()[0]
+    def verify_solution(self, i: int, /) -> bool:
+        return self._has_succeeded(self._contract.functions.verifySolution(i))
 
-    def pay(self, i: int) -> None:
-        if not self._has_succeeded(self._contract.functions.pay(i)):
-            raise RuntimeError("Payout was not successful")
+    def get_message_at(self, i: int) -> GCTLP_Encrypted_Message:
+        return self._contract.functions.getSolutionAt(i).call()
 
     def pay_back(self, i: int) -> None:
         if not self._has_succeeded(self._contract.functions.payBack(i)):
@@ -230,7 +232,6 @@ class EthereumSC:
                 self._contract.functions.initialize(
                     coins_batch,
                     start_time,
-                    list(map(int, extra_times_batch)),
                     list(map(int, upper_bounds_batch)),
                     helper_id,
                 ),

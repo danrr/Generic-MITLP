@@ -2,13 +2,11 @@ from typing import Protocol, Self
 
 from eth_typing import ChecksumAddress
 
-from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests
+from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests, GCTLPInterface, GCTLP_Encrypted_Messages
 
 SC_Coins = list[int]
 SC_UpperBounds = list[int]
 SC_ExtraTime = list[float]
-SC_Solution = tuple[GCTLP_Encrypted_Message, TLP_Digest, int]
-SC_Solutions = list[SC_Solution]
 
 
 class SCInterface(Protocol):
@@ -19,6 +17,7 @@ class SCInterface(Protocol):
         start_time: int,
         extra_time: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
+        gctlp: GCTLPInterface,
         helper_id: int | ChecksumAddress,
     ) -> Self: ...
 
@@ -34,9 +33,11 @@ class SCInterface(Protocol):
 
     def get_commitment_at(self, i: int, /) -> TLP_Digest: ...
 
-    def get_solution_at(self, i: int, /) -> SC_Solution: ...
+    def get_solution_at(self, i: int, /) -> GCTLP_Encrypted_Message: ...
 
     def get_upper_bound_at(self, i: int, /) -> int: ...
+
+    def verify_solution(self, i: int, /) -> bool: ...
 
     @property
     def upper_bounds(self) -> SC_UpperBounds: ...
@@ -54,7 +55,7 @@ class SCInterface(Protocol):
     def commitments(self, commitments: TLP_Digests, /): ...
 
     @property
-    def solutions(self) -> SC_Solutions: ...
+    def solutions(self) -> GCTLP_Encrypted_Messages: ...
 
     @property
     def initial_timestamp(self) -> int: ...

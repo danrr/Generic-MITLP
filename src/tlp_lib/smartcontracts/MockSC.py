@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Any, Self
 
-from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests
-from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_Solution, SC_Solutions, SC_UpperBounds
+from tlp_lib import GCTLP
+from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests, GCTLP_Encrypted_Messages
+from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_UpperBounds
 
 
 class MockSC:
@@ -10,23 +11,26 @@ class MockSC:
     start_time: int
     upper_bounds: SC_UpperBounds
     coins: SC_Coins
-    solutions: SC_Solutions = []
+    solutions: GCTLP_Encrypted_Messages = []
     initial_timestamp: int
+    gctlp: GCTLP
     helper_id: Any
     extra_time: SC_ExtraTime
 
     def initiate(
-        self,
-        coins: SC_Coins,
-        start_time: int,
-        extra_time: SC_ExtraTime,
-        upper_bounds: SC_UpperBounds,
-        helper_id: Any,
+            self,
+            coins: SC_Coins,
+            start_time: int,
+            extra_time: SC_ExtraTime,
+            upper_bounds: SC_UpperBounds,
+            gctlp: GCTLP,
+            helper_id: Any,
     ) -> Self:
         self.coins = coins
         self.start_time = start_time
         self.extra_time = extra_time
         self.upper_bounds = upper_bounds
+        self.gctlp = gctlp
         self.helper_id = helper_id
         self.commitments = []
         self.solutions = []
@@ -35,16 +39,24 @@ class MockSC:
 
     def add_solution(self, solution: GCTLP_Encrypted_Message, witness: TLP_Digest):
         time = int(datetime.now().timestamp())
-        self.solutions.append((solution, witness, time))
+        assert time >= self.initial_timestamp + self.start_time
+        self.check_solution(self.get_commitment_at(len(self.solutions)), solution, witness)
 
-    def get_message_at(self, i: int, /) -> GCTLP_Encrypted_Message:
-        return self.solutions[i][0]
+        self.solutions.append(solution)
+
+    def verify_solution(self, i: int, /) -> bool:
+        solution = self.get_solution_at(i)
+        return len(solution) != 0
+
+    def check_solution(self, commitment, solution, witness):
+        try:
+            self.gctlp.verify(solution, witness, commitment)
+            return True
+        except AssertionError:
+            return False
 
     def switch_to_account(self, account: int):
         pass
-
-    def pay(self, i: int, /):
-        print(f"paying TPH {self.coins[i]}")
 
     def pay_back(self, i: int, /):
         print(f"paying back {self.coins[i]}")
@@ -52,7 +64,7 @@ class MockSC:
     def get_commitment_at(self, i: int, /) -> TLP_Digest:
         return self.commitments[i]
 
-    def get_solution_at(self, i: int, /) -> SC_Solution:
+    def get_solution_at(self, i: int, /) -> GCTLP_Encrypted_Message:
         return self.solutions[i]
 
     def get_upper_bound_at(self, i: int, /) -> int:

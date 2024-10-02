@@ -141,18 +141,11 @@ class EDTLP:
         sc.add_solution(solution, commitment)
 
     def verify(self, sc: SCInterface, i: int) -> None:
-        solution, witness, _ = sc.get_solution_at(i)
-        commitment = sc.get_commitment_at(i)
-        self.gctlp.verify(solution, witness, commitment)
+        sc.verify_solution(i)
 
-    def pay(self, sc: SCInterface, i: int) -> None:
-        try:
-            self.verify(sc, i)
-        except AssertionError:
-            sc.pay_back(i)
-        else:
-            sc.pay(i)
+    def pay_back(self, sc: SCInterface, i: int) -> None:
+        sc.pay_back(i)
 
     def retrieve(self, sc: SCInterface, csk: GCTLP_Client_Key, i: int) -> TLP_Message:
-        encrypted_message = sc.get_message_at(i)
+        encrypted_message = sc.get_solution_at(i)
         return self.sym_enc.decrypt(csk, encrypted_message)

@@ -38,8 +38,8 @@ def test_cdeg(keysize: Literal[1024, 2048]):
 def test_edtlp_too_few_coins():
     coins = [0]
     coins_acceptable = 1
-    sc = MockSC().initiate(coins, 0, [0], [0], 1)
     edtlp = EDTLP()
+    sc = MockSC().initiate(coins, 0, [0], [0], edtlp.gctlp, 1)
     with pytest.raises(CoinException):
         for _ in edtlp.solve(sc, Server_Info(1), (), [], coins_acceptable):  # type: ignore
             ...

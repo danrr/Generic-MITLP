@@ -6,12 +6,8 @@ contract SmartContract {
     struct PuzzlePart {
         uint coin;
         uint upperBound;
-        uint extraTime;
         bytes commitment;
         bytes solution;
-        bytes witness;
-        uint256 timestamp;
-        address solver;
         bool paidOut;
     }
 
@@ -28,7 +24,6 @@ contract SmartContract {
     }
 
     uint public startTime;
-    uint public extraTime;
     address public helperID;
     uint public initialTimestamp;
     Status public contractStatus = Status.Setup;
@@ -45,7 +40,6 @@ contract SmartContract {
     function initialize(
         uint[] memory _coins,
         uint _startTime,
-        uint[] memory _extraTimes,
         uint[] memory _upperBounds,
         address _helperID
     ) public payable onlyOwner {
@@ -69,12 +63,8 @@ contract SmartContract {
             puzzleParts[startIndex + i] = PuzzlePart({
                 coin: _coins[i],
                 upperBound: _upperBounds[i],
-                extraTime: _extraTimes[i],
                 commitment: "",
                 solution: "",
-                witness: "",
-                timestamp: 0,
-                solver: address(0),
                 paidOut: false
             });
             receivedValue -= _coins[i];
@@ -121,6 +111,22 @@ contract SmartContract {
         }
     }
 
+    function addSolution(bytes calldata solution, bytes calldata witness) public {
+        require(contractStatus == Status.Solving, "Contract is not in Solving status.");
+        require(nextUnsolvedPuzzlePart < amountOfPuzzleParts, "All puzzle parts have already been solved.");
+        require(checkSolution(solution, witness, puzzleParts[nextUnsolvedPuzzlePart].commitment), "The solution is not correct.");
+
+        uint256 upperBound = puzzleParts[nextUnsolvedPuzzlePart].upperBound;
+        require(block.timestamp <= initialTimestamp + upperBound, "Too late: the time upper bound has been exceeded.");
+
+        // Once the solution is correct, the solver should be paid
+        pay(nextUnsolvedPuzzlePart, msg.sender);
+
+        puzzleParts[nextUnsolvedPuzzlePart].solution = solution;
+
+        nextUnsolvedPuzzlePart++;
+    }
+
     function coins() public view returns (uint[] memory) {
         uint[] memory coins = new uint[](amountOfPuzzleParts);
         for (uint i = 0; i < amountOfPuzzleParts; i++) {
@@ -137,39 +143,18 @@ contract SmartContract {
         return upperBounds;
     }
 
-    function addSolution(bytes calldata solution, bytes calldata witness) public {
-        require(contractStatus == Status.Solving, "Contract is not in Solving status.");
-        require(nextUnsolvedPuzzlePart < amountOfPuzzleParts, "All puzzle parts have already been solved.");
-        require(checkSolution(solution, witness, puzzleParts[nextUnsolvedPuzzlePart].commitment), "The solution is not correct.");
-
-        uint256 upperBound = puzzleParts[nextUnsolvedPuzzlePart].upperBound;
-        require(block.timestamp <= initialTimestamp + upperBound, "Too late: the time upper bound has been exceeded.");
-
-        // Once the solution is correct, the solver should be paid
-        pay(nextUnsolvedPuzzlePart);
-
-        puzzleParts[nextUnsolvedPuzzlePart].solution = solution;
-        puzzleParts[nextUnsolvedPuzzlePart].witness = witness;
-        puzzleParts[nextUnsolvedPuzzlePart].timestamp = block.timestamp;
-        puzzleParts[nextUnsolvedPuzzlePart].solver = msg.sender;
-
-        nextUnsolvedPuzzlePart++;
-    }
-
     function getCommitmentAt(uint puzzlePartIndex) public view returns (bytes memory) {
         require(puzzlePartIndex < amountOfPuzzleParts, "The puzzle part index is out of bounds.");
         require(puzzleParts[puzzlePartIndex].commitment.length > 0, "The commitment is not set yet.");
         return puzzleParts[puzzlePartIndex].commitment;
     }
 
-    function getSolutionAt(uint puzzlePartIndex) public returns (bytes memory, bytes memory, uint) {
+    function getSolutionAt(uint puzzlePartIndex) public returns (bytes memory) {
         require(puzzlePartIndex < amountOfPuzzleParts, "The puzzle part index is out of bounds.");
 
         bytes memory solutionMemory = puzzleParts[puzzlePartIndex].solution;
-        bytes memory witnessMemory = puzzleParts[puzzlePartIndex].witness;
-        uint timestamp = puzzleParts[puzzlePartIndex].timestamp;
 
-        return (solutionMemory, witnessMemory, timestamp);
+        return solutionMemory;
     }
 
     function getUpperBoundAt(uint puzzlePartIndex) public view returns (uint) {
@@ -177,22 +162,23 @@ contract SmartContract {
         return puzzleParts[puzzlePartIndex].upperBound;
     }
 
-    function solutions() public view returns (bytes[] memory, bytes[] memory, uint[] memory) {
+    function solutions() public view returns (bytes[] memory) {
         bytes[] memory solutions = new bytes[](amountOfPuzzleParts);
-        bytes[] memory witnesses = new bytes[](amountOfPuzzleParts);
-        uint[] memory timestamps = new uint[](amountOfPuzzleParts);
         for (uint i = 0; i < amountOfPuzzleParts; i++) {
             solutions[i] = puzzleParts[i].solution;
-            witnesses[i] = puzzleParts[i].witness;
-            timestamps[i] = puzzleParts[i].timestamp;
         }
-        return (solutions, witnesses, timestamps);
+        return solutions;
     }
 
-    function pay(uint puzzlePartIndex) internal {
+    function verifySolution(uint puzzlePartIndex) public view returns (bool) {
+        require(puzzlePartIndex < amountOfPuzzleParts, "The puzzle part index is out of bounds.");
+        return puzzleParts[puzzlePartIndex].solution.length > 0;
+    }
+
+    function pay(uint puzzlePartIndex, address solver) internal {
         require(!puzzleParts[puzzlePartIndex].paidOut, "The puzzle part has already been paid out.");
         puzzleParts[puzzlePartIndex].paidOut = true;
-        payable(puzzleParts[puzzlePartIndex].solver).transfer(puzzleParts[puzzlePartIndex].coin);
+        payable(solver).transfer(puzzleParts[puzzlePartIndex].coin);
     }
 
     function payBack(uint puzzlePartIndex) public onlyOwner {
