@@ -2,7 +2,7 @@ from typing import Protocol, Self
 
 from eth_typing import ChecksumAddress
 
-from tlp_lib.protocols import GCTLP_Encrypted_Message, TLP_Digest, TLP_Digests, GCTLPInterface, GCTLP_Encrypted_Messages
+from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, GCTLPInterface, TLP_Digest, TLP_Digests
 
 SC_Coins = list[int]
 SC_UpperBounds = list[int]

@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Optional
 
 from consts import KEYSIZE, MESSAGE, SEED, SQUARINGS_PER_SEC
-from tlp_lib.wrappers.Keccak256Wrapper import Keccak256Wrapper
 from utils import timer, timer_with_output
 
 from tlp_lib import EDTLP, GCTLP, MITLP, TLP
@@ -22,6 +21,7 @@ from tlp_lib.protocols import (
 )
 from tlp_lib.smartcontracts import EthereumSC, MockSC
 from tlp_lib.smartcontracts.protocols import SCInterface
+from tlp_lib.wrappers.Keccak256Wrapper import Keccak256Wrapper
 
 SOLVE = True
 
