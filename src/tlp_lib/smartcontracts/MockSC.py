@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import Any, Self
 
-from tlp_lib import GCTLP
-from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, TLP_Digest, TLP_Digests
+from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, TLP_Digest, TLP_Digests, GCTLPInterface
 from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_UpperBounds
 
 
@@ -13,7 +12,7 @@ class MockSC:
     coins: SC_Coins
     solutions: GCTLP_Encrypted_Messages = []
     initial_timestamp: int
-    gctlp: GCTLP
+    gctlp: GCTLPInterface
     helper_id: Any
     extra_time: SC_ExtraTime
 
@@ -23,7 +22,7 @@ class MockSC:
         start_time: int,
         extra_time: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
-        gctlp: GCTLP,
+        gctlp: GCTLPInterface,
         helper_id: Any,
     ) -> Self:
         self.coins = coins
@@ -48,7 +47,7 @@ class MockSC:
         solution = self.get_solution_at(i)
         return len(solution) != 0
 
-    def check_solution(self, commitment, solution, witness):
+    def check_solution(self, commitment: TLP_Digest, solution: GCTLP_Encrypted_Message, witness: TLP_Digest) -> bool:
         try:
             self.gctlp.verify(solution, witness, commitment)
             return True

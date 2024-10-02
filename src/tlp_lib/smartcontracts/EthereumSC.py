@@ -11,8 +11,7 @@ from web3.contract import Contract  # pyright: ignore[reportPrivateImportUsage]
 from web3.contract.contract import ContractFunction, HexBytes  # pyright: ignore[reportPrivateImportUsage]
 from web3.types import TxParams, TxReceipt, Wei
 
-from tlp_lib import GCTLP
-from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, TLP_Digest, TLP_Digests
+from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, TLP_Digest, TLP_Digests, GCTLPInterface
 from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_UpperBounds
 
 SOLC_VERSION = "0.8.0"
@@ -103,7 +102,7 @@ class EthereumSC:
         start_time: int,
         extra_time: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
-        gctlp: GCTLP,
+        gctlp: GCTLPInterface,
         helper_id: int | ChecksumAddress,
     ) -> Self:
         """
@@ -205,7 +204,7 @@ class EthereumSC:
             address=tx_receipt["contractAddress"], abi=abi
         )  # pyright: ignore[reportAttributeAccessIssue]
 
-        self._initialize_in_batches(coins, start_time, extra_times, upper_bounds, helper_id)
+        self._initialize_in_batches(coins, start_time, upper_bounds, helper_id)
 
         return tx_receipt["contractAddress"]
 
@@ -213,16 +212,15 @@ class EthereumSC:
         self,
         coins: SC_Coins,
         start_time: int,
-        extra_times: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
         helper_id: int | ChecksumAddress,
     ) -> None:
         # Ensure that all lists have the same length
-        assert len(coins) == len(extra_times) == len(upper_bounds), "All input lists must have the same length"
+        assert len(coins) == len(upper_bounds), "All input lists must have the same length"
 
-        batches = [itertools.batched(lst, self._SC_PUZZLE_BATCH_SIZE) for lst in (coins, extra_times, upper_bounds)]
+        batches = [itertools.batched(lst, self._SC_PUZZLE_BATCH_SIZE) for lst in (coins, upper_bounds)]
 
-        for coins_batch, extra_times_batch, upper_bounds_batch in zip(*batches):
+        for coins_batch, upper_bounds_batch in zip(*batches):
 
             # Calculate the value to send with this batch
             value_to_send = sum(coins_batch)
