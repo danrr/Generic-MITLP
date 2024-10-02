@@ -141,7 +141,7 @@ class EDTLP:
         sc.add_solution(solution, commitment)
 
     def verify(self, sc: SCInterface, i: int) -> None:
-        solution, witness, time_solved = sc.get_solution_at(i)
+        solution, witness, _ = sc.get_solution_at(i)
         commitment = sc.get_commitment_at(i)
         self.gctlp.verify(solution, witness, commitment)
 

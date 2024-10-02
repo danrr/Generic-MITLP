@@ -1,7 +1,6 @@
 from typing import ClassVar
 
-from cryptography.hazmat.primitives import hashes
-from eth_utils import keccak
+from eth_utils.crypto import keccak
 
 
 class Keccak256Wrapper:
