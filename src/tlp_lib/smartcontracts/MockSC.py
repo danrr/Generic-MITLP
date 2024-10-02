@@ -18,13 +18,13 @@ class MockSC:
     extra_time: SC_ExtraTime
 
     def initiate(
-            self,
-            coins: SC_Coins,
-            start_time: int,
-            extra_time: SC_ExtraTime,
-            upper_bounds: SC_UpperBounds,
-            gctlp: GCTLP,
-            helper_id: Any,
+        self,
+        coins: SC_Coins,
+        start_time: int,
+        extra_time: SC_ExtraTime,
+        upper_bounds: SC_UpperBounds,
+        gctlp: GCTLP,
+        helper_id: Any,
     ) -> Self:
         self.coins = coins
         self.start_time = start_time
