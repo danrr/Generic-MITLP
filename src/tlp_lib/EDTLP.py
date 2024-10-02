@@ -143,9 +143,6 @@ class EDTLP:
     def verify(self, sc: SCInterface, i: int) -> None:
         solution, witness, time_solved = sc.get_solution_at(i)
         commitment = sc.get_commitment_at(i)
-        time_to_solve = time_solved - sc.initial_timestamp
-        upper_bound = sc.get_upper_bound_at(i)
-        assert time_to_solve < upper_bound
         self.gctlp.verify(solution, witness, commitment)
 
     def pay(self, sc: SCInterface, i: int) -> None:

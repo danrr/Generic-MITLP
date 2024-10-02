@@ -142,6 +142,9 @@ contract SmartContract {
         require(nextUnsolvedPuzzlePart < amountOfPuzzleParts, "All puzzle parts have already been solved.");
         require(checkSolution(solution, witness, puzzleParts[nextUnsolvedPuzzlePart].commitment), "The solution is not correct.");
 
+        uint256 upperBound = puzzleParts[nextUnsolvedPuzzlePart].upperBound;
+        require(block.timestamp <= initialTimestamp + upperBound, "Too late: the time upper bound has been exceeded.");
+
         // Once the solution is correct, the solver should be paid
         pay(nextUnsolvedPuzzlePart);
 
