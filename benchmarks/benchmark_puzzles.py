@@ -22,7 +22,7 @@ from tlp_lib.protocols import (
 from tlp_lib.smartcontracts import EthereumSC, MockSC
 from tlp_lib.smartcontracts.protocols import SCInterface
 
-SOLVE = True
+SOLVE = False
 
 # todo: store in some format that can be output to csv
 # todo: pyplot
@@ -310,25 +310,21 @@ def benchmark():
 
     for instances in INSTANCES:
         print(f"{instances} instances of {FIXED_INTERVAL} seconds each")
-        runnables = [
-            (benchmark_time_mitlp, instances),
-            (benchmark_time_gctlp, instances),
-            (benchmark_time_edtlp, instances),
-        ]
-        if instances != INSTANCES[0]:
-            runnables.append((benchmark_time_tlp, instances // 10))
+        # runnables = [
+        #     (benchmark_time_mitlp, instances),
+        #     (benchmark_time_gctlp, instances),
+        #     (benchmark_time_edtlp, instances),
+        # ]
+        # if instances != INSTANCES[0]:
+        #     runnables.append((benchmark_time_tlp, instances // 10))
+        #
+        # with Pool(4) as p:
+        #     outputs = p.map_async(
+        #         runner,
+        #         runnables,
+        #     )
 
-        with Pool(4) as p:
-            outputs = p.map_async(
-                runner,
-                runnables,
-            )
-
-            rows.append(benchmark_time_edtlp(instances, EthereumSC()))
-
-            for output in outputs.get():
-                rows.append(output)
-    rows.append(benchmark_time_tlp(INSTANCES[-1]))
+        rows.append(benchmark_time_edtlp(instances, EthereumSC()))
 
     with open(Path(__file__).parent / f"out/benchmark{datetime.now()}.csv", "w", newline="") as csvfile:
         fieldnames = [

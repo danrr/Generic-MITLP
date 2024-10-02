@@ -1,5 +1,7 @@
+import functools
 from collections.abc import Generator, Sequence
 from typing import Optional, Unpack
+from multiprocessing import Pool
 
 import gmpy2
 
@@ -17,11 +19,29 @@ from tlp_lib.protocols import (
     TLP_Puzzles,
     TLP_type,
     TLPKwargs,
+    TLP_Puzzle,
 )
-from tlp_lib.wrappers import Random, SHA512Wrapper
+from tlp_lib.wrappers import Random, SHA512Wrapper, FernetWrapper
 from tlp_lib.wrappers.protocols import HashFunc, RandGen
 
 COMMITMENT_LENGTH = 128  # hard coded for hash commitments
+
+sym_enc = FernetWrapper()
+
+
+def _generate(n, r, r_next, m, d, a):
+    r = gmpy2.mpz.from_bytes(r)
+    message = m + d
+    hash_ = SHA512Wrapper.digest(message)
+    message += r_next
+
+    k = sym_enc.generate_key()
+    b = gmpy2.powmod(r, a, n)
+    encrypted_message = sym_enc.encrypt(k, message)
+    encrypted_key = int((k + b) % n)
+    puzzle = TLP_Puzzle(encrypted_key, encrypted_message)
+
+    return puzzle, hash_
 
 
 class GCTLP:
@@ -74,19 +94,12 @@ class GCTLP:
         if len(r) != z + 1:
             raise ValueError("length of r must be one more than m")
 
-        hash_list: TLP_Digests = []
-        puzz_list: TLP_Puzzles = []
-        for i in range(z):
-            pk_i = (n, t[i], gmpy2.mpz.from_bytes(r[i]))
+        with Pool(processes=8) as pool:
+            res = pool.starmap(functools.partial(_generate, n), zip(r[:-1], r[1:], m, d, a))
 
-            message = m[i] + d[i]
-            hash_list.append(self.hash.digest(message))
+        res = list(zip(*res))
 
-            message += r[i + 1]
-            puzzle = self.tlp.generate(pk_i, a[i], message)
-            puzz_list.append(puzzle)
-
-        return puzz_list, hash_list
+        return list(res[0]), list(res[1])
 
     def solve(self, pk: GCTLP_Public_Input, puzz: TLP_Puzzles) -> Generator[tuple[TLP_Message, TLP_Digest], None, None]:
         aux, n, t, r_i = pk
