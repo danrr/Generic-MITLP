@@ -11,7 +11,7 @@ from web3.contract import Contract  # pyright: ignore[reportPrivateImportUsage]
 from web3.contract.contract import ContractFunction, HexBytes  # pyright: ignore[reportPrivateImportUsage]
 from web3.types import TxParams, TxReceipt, Wei
 
-from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, TLP_Digest, TLP_Digests, GCTLPInterface
+from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, GCTLPInterface, TLP_Digest, TLP_Digests
 from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_UpperBounds
 
 SOLC_VERSION = "0.8.0"

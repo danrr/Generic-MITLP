@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Self
 
-from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, TLP_Digest, TLP_Digests, GCTLPInterface
+from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, GCTLPInterface, TLP_Digest, TLP_Digests
 from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_UpperBounds
 
 
