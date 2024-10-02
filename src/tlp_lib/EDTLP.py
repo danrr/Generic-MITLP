@@ -88,7 +88,7 @@ class EDTLP:
         extra_time = [cdeg(squarings_upper_bound, interval, server_info) for interval in intervals]
         upper_bounds = list(accumulate([start_time] + list(map(add, intervals, extra_time))))[1:]
         sc = self.smart_contract.initiate(
-            coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds, helper_id=helper_id
+            coins=coins, start_time=start_time, extra_time=extra_time, upper_bounds=upper_bounds, gctlp=self.gctlp, helper_id=helper_id
         )
 
         return extra_time, sc
