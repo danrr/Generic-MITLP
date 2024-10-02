@@ -140,6 +140,10 @@ contract SmartContract {
     function addSolution(bytes calldata solution, bytes calldata witness) public {
         require(contractStatus == Status.Solving, "Contract is not in Solving status.");
         require(nextUnsolvedPuzzlePart < amountOfPuzzleParts, "All puzzle parts have already been solved.");
+        require(checkSolution(solution, witness, puzzleParts[nextUnsolvedPuzzlePart].commitment), "The solution is not correct.");
+
+        // Once the solution is correct, the solver should be paid
+        pay(nextUnsolvedPuzzlePart);
 
         puzzleParts[nextUnsolvedPuzzlePart].solution = solution;
         puzzleParts[nextUnsolvedPuzzlePart].witness = witness;
@@ -182,7 +186,7 @@ contract SmartContract {
         return (solutions, witnesses, timestamps);
     }
 
-    function pay(uint puzzlePartIndex) public onlyOwner {
+    function pay(uint puzzlePartIndex) internal {
         require(!puzzleParts[puzzlePartIndex].paidOut, "The puzzle part has already been paid out.");
         puzzleParts[puzzlePartIndex].paidOut = true;
         payable(puzzleParts[puzzlePartIndex].solver).transfer(puzzleParts[puzzlePartIndex].coin);
@@ -192,6 +196,13 @@ contract SmartContract {
         require(!puzzleParts[puzzlePartIndex].paidOut, "The puzzle part has already been paid out.");
         puzzleParts[puzzlePartIndex].paidOut = true;
         payable(owner).transfer(address(this).balance);
+    }
+
+    function checkSolution(bytes calldata solution, bytes calldata witness, bytes memory commitment) public pure returns (bool) {
+        bytes memory concatenated = abi.encodePacked(solution, witness);
+        bytes32 hash = keccak256(concatenated);
+
+        return (hash == abi.decode(commitment, (bytes32)));
     }
 }
 
