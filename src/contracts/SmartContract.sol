@@ -33,7 +33,7 @@ contract SmartContract {
     uint public nextUnsolvedPuzzlePart = 0;
     address public owner;
 
-    constructor() public payable {
+    constructor() public {
         owner = msg.sender;
     }
 
