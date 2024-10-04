@@ -23,9 +23,8 @@ contract SmartContract {
         _;
     }
 
-    uint public startTime;
     address public helperID;
-    uint public initialTimestamp;
+    uint public startTime;
     Status public contractStatus = Status.Setup;
 
     mapping(uint => PuzzlePart) public puzzleParts;
@@ -39,7 +38,6 @@ contract SmartContract {
 
     function initialize(
         uint[] memory _coins,
-        uint _startTime,
         uint[] memory _upperBounds,
         address _helperID
     ) public payable onlyOwner {
@@ -50,9 +48,8 @@ contract SmartContract {
         require(contractStatus == Status.Setup, "Contract setup is already completed.");
 
         if (amountOfPuzzleParts == 0) {
-            startTime = _startTime;
             helperID = _helperID;
-            initialTimestamp = block.timestamp;
+            startTime = block.timestamp;
             owner = msg.sender;
         }
 
@@ -117,7 +114,7 @@ contract SmartContract {
         require(checkSolution(solution, witness, puzzleParts[nextUnsolvedPuzzlePart].commitment), "The solution is not correct.");
 
         uint256 upperBound = puzzleParts[nextUnsolvedPuzzlePart].upperBound;
-        require(block.timestamp <= initialTimestamp + upperBound, "Too late: the time upper bound has been exceeded.");
+        require(block.timestamp <= startTime + upperBound, "Too late: the time upper bound has been exceeded.");
 
         // Once the solution is correct, the solver should be paid
         pay(nextUnsolvedPuzzlePart, msg.sender);
