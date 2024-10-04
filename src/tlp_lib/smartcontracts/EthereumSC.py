@@ -20,6 +20,13 @@ CONTRACT_PATH = str((Path(__file__) / "../../../contracts/SmartContract.sol").re
 
 logger = getLogger(__name__)
 
+type PuzzleIndex = int
+type PuzzleDetailsSH = bytes
+type PuzzleCommitmentSH = bytes
+type PuzzleDetailsEvent = tuple[PuzzleIndex, SC_Coins, SC_UpperBounds, PuzzleDetailsSH]
+type PuzzleCommitmentEvent = tuple[PuzzleIndex, GCTLP_Encrypted_Message, PuzzleCommitmentSH]
+type PuzzleSolutionEvent = tuple[PuzzleIndex, GCTLP_Encrypted_Message, TLP_Digest]
+
 
 class EthereumSC:
     web3: Web3
@@ -27,6 +34,10 @@ class EthereumSC:
     __contract: Optional[Contract] = None
     _contract_path: str
     _backend: Optional[PyEVMBackend] = None
+    _initialized_events: Optional[list[PuzzleDetailsEvent]] = None
+    _set_commitment_events: Optional[list[PuzzleCommitmentEvent]] = None
+    _received_solution_events: Optional[list[PuzzleSolutionEvent]] = None
+    _sc_init_block: Optional[int] = None
 
     def __init__(
         self, account: Optional[ChecksumAddress] = None, web3: Optional[Web3] = None, contract_path: str = CONTRACT_PATH
@@ -47,27 +58,27 @@ class EthereumSC:
     @commitments.setter
     def commitments(self, commitments: TLP_Digests):
         start_index = 0
-        for commitments_batch in itertools.batched(commitments, self._SC_PUZZLE_BATCH_SIZE):
-
-            # Call the setCommitments function for the current batch with the appropriate start index
-            if not self._has_succeeded(self._contract.functions.setCommitments(commitments_batch, start_index)):
-                raise RuntimeError(f"Commitments were not set correctly for batch starting at index {start_index}")
-
-            start_index += len(commitments_batch)
+        # Call the setCommitments function for the current batch with the appropriate start index
+        if not self._has_succeeded(self._contract.functions.setCommitments(commitments)):
+            raise RuntimeError(f"Commitments were not set correctly for batch starting at index {start_index}")
 
     def get_commitment_at(self, i: int) -> TLP_Digest:
         return self._contract.functions.getCommitmentAt(i).call()
 
     @property
     def coins(self) -> SC_Coins:
-        return self._contract.functions.coins().call()
+        if self._initialized_events is None:
+            self._load_initialized_events()
+        return [coins for (_, coins, _, _) in self._initialized_events]
 
     @property
     def upper_bounds(self) -> SC_UpperBounds:
-        return self._contract.functions.upperBounds().call()
+        if self._initialized_events is None:
+            self._load_initialized_events()
+        return [upper_bounds for (_, _, upper_bounds, _) in self._initialized_events]
 
     def get_upper_bound_at(self, i: int) -> int:
-        return self._contract.functions.getUpperBoundAt(i).call()
+        return self.upper_bounds[i]
 
     @property
     def start_time(self) -> int:
@@ -75,10 +86,12 @@ class EthereumSC:
 
     @property  # pyright: ignore
     def solutions(self) -> GCTLP_Encrypted_Messages:
-        return self._contract.functions.solutions().call()
+        # Always load the events to ensure that the list is up-to-date
+        self.load_received_solution_events()
+        return [solution for (_, solution, _) in self._received_solution_events]
 
     def get_solution_at(self, i: int) -> GCTLP_Encrypted_Message:
-        return self._contract.functions.getSolutionAt(i).call()
+        return self.solutions[i]
 
     @property
     def account(self) -> ChecksumAddress:
@@ -119,17 +132,46 @@ class EthereumSC:
         self.account = self.web3.eth.accounts[account_index]
 
     def add_solution(self, solution: GCTLP_Encrypted_Message, witness: TLP_Digest) -> None:
-        if not self._has_succeeded(self._contract.functions.addSolution(solution, witness)):
+
+        if self._initialized_events is None:
+            self._load_initialized_events()
+
+        if self._set_commitment_events is None:
+            self.load_set_commitment_events()
+
+        amount_of_puzzles = len(self._initialized_events)
+        amount_of_puzzles_left = self._contract.functions.amountOfPuzzleParts().call()
+        solution_index = amount_of_puzzles - amount_of_puzzles_left
+
+        (_, commitment, prev_puzzle_commitment_sh) = self._set_commitment_events[solution_index]
+        (_, coin, upper_bound, prev_puzzle_details_sh) = self._initialized_events[solution_index]
+
+        if not self._has_succeeded(
+            self._contract.functions.addSolution(
+                solution, witness, commitment, prev_puzzle_commitment_sh, coin, upper_bound, prev_puzzle_details_sh
+            )
+        ):
             raise RuntimeError("Solution was not added correctly")
 
     def verify_solution(self, i: int, /) -> bool:
-        return self._has_succeeded(self._contract.functions.verifySolution(i))
+        try:
+            self.get_solution_at(i)
+            return True
+        except IndexError:
+            return False
 
-    def get_message_at(self, i: int) -> GCTLP_Encrypted_Message:
-        return self._contract.functions.getSolutionAt(i).call()
+    def pay_back(self, _i: int) -> None:
 
-    def pay_back(self, i: int) -> None:
-        if not self._has_succeeded(self._contract.functions.payBack(i)):
+        solution_index = self._contract.functions.amountOfPuzzleParts().call() - 1
+
+        (_, commitment, prev_puzzle_commitment_sh) = self._set_commitment_events[solution_index]
+        (_, coin, upper_bound, prev_puzzle_details_sh) = self._initialized_events[solution_index]
+
+        if not self._has_succeeded(
+            self._contract.functions.payBack(
+                commitment, prev_puzzle_commitment_sh, coin, upper_bound, prev_puzzle_details_sh
+            )
+        ):
             raise RuntimeError("Payback was not successful")
 
     # Private Properties #
@@ -189,12 +231,29 @@ class EthereumSC:
         tx_hash: HexBytes = contract.transact({"from": self.account})
 
         tx_receipt: TxReceipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+        self._sc_init_block = tx_receipt["blockNumber"]
 
         self._contract = self.web3.eth.contract(
             address=tx_receipt["contractAddress"], abi=abi
         )  # pyright: ignore[reportAttributeAccessIssue]
 
-        self._initialize_in_batches(coins, upper_bounds, helper_id)
+        self._initialized_events = None
+        self._set_commitment_events = None
+        self._received_solution_events = None
+
+        # TODO - support for multiple batches
+        # Calculate the value to send with this batch
+        value_to_send = sum(coins)
+        # Call the initialize function for the current batch
+        if not self._has_succeeded(
+            self._contract.functions.initialize(
+                coins,
+                list(map(int, upper_bounds)),
+                helper_id,
+            ),
+            value_to_send,
+        ):
+            raise RuntimeError("Initialize has failed for single-call")
 
         return tx_receipt["contractAddress"]
 
@@ -271,3 +330,40 @@ class EthereumSC:
 
         if base_fee_per_gas > max_fee_per_gas * 0.9 and self._backend is not None:
             self._backend.mine_blocks(1)
+
+    def _load_initialized_events(self):
+        if self._sc_init_block is None:
+            self._sc_init_block = 0
+
+        logs = self._contract.events.Initialized().get_logs(fromBlock=self._sc_init_block)
+        self._initialized_events = [
+            (
+                log["args"]["index"],
+                log["args"]["coins"],
+                log["args"]["upperBound"],
+                log["args"]["prevPuzzleDetailsStorageHash"],
+            )
+            for log in logs
+        ]
+        self._initialized_events.sort(key=lambda x: x[0])
+
+    def load_set_commitment_events(self):
+        if self._sc_init_block is None:
+            self._sc_init_block = 0
+
+        logs = self._contract.events.CommitmentSet().get_logs(fromBlock=self._sc_init_block)
+        self._set_commitment_events = [
+            (log["args"]["index"], log["args"]["commitment"], log["args"]["prevPuzzleCommitmentStorageHash"])
+            for log in logs
+        ]
+        self._set_commitment_events.sort(key=lambda x: x[0])
+
+    def load_received_solution_events(self):
+        if self._sc_init_block is None:
+            self._sc_init_block = 0
+
+        logs = self._contract.events.SolutionReceived().get_logs(fromBlock=self._sc_init_block)
+        self._received_solution_events = [
+            (log["args"]["revIndex"], log["args"]["solution"], log["args"]["witness"]) for log in logs
+        ]
+        self._received_solution_events.sort(key=lambda x: -x[0])
