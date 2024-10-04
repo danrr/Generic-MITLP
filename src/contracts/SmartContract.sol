@@ -55,7 +55,6 @@ contract SmartContract {
 
         if (amountOfPuzzleParts == 0) {
             helperID = _helperID;
-            startTime = block.timestamp;
             owner = msg.sender;
         }
 
@@ -66,7 +65,7 @@ contract SmartContract {
         for (uint256 i = 0; i < _coins.length; i++) {
                 uint256 index = i;
 
-                emit Initialized(index, _coins[index], _upperBounds[index], _puzzleDetailsStorageHash);
+                emit Initialized(amountOfPuzzleParts + index, _coins[index], _upperBounds[index], _puzzleDetailsStorageHash);
 
                 _puzzleDetailsStorageHash = _hashPuzzleDetails(_coins[index], _upperBounds[index], _puzzleDetailsStorageHash);
                 receivedValue -= _coins[index];
@@ -80,6 +79,7 @@ contract SmartContract {
     }
 
     function setCommitments(bytes32[] calldata _commitments) public onlyHelper {
+        require(amountOfPuzzleParts >= _commitments.length, "The number of commitments should be less than or equal to the number of puzzle parts.");
         // Change status to SettingCommitments on the first call
         if (contractStatus == Status.Setup) {
             contractStatus = Status.SettingCommitments;
@@ -91,12 +91,17 @@ contract SmartContract {
         for (uint256 i = 0; i < _commitments.length; i++) {
             uint256 index = i;
 
-            emit CommitmentSet(amountOfPuzzleParts + index, _commitments[index], _puzzleCommitmentStorageHash);
+            emit CommitmentSet(amountOfPuzzleParts - index, _commitments[index], _puzzleCommitmentStorageHash);
             _puzzleCommitmentStorageHash = _hashPuzzleCommitment(_commitments[index], _puzzleCommitmentStorageHash);
         }
 
+        amountOfPuzzleParts -= _commitments.length;
         puzzleCommitmentStorageHash = _puzzleCommitmentStorageHash;
-        contractStatus = Status.Solving;
+
+        if (amountOfPuzzleParts == 0) {
+            contractStatus = Status.Solving;
+            startTime = block.timestamp;
+        }
     }
 
     function addSolution(bytes calldata solution, bytes calldata witness, bytes32 commitment, bytes32 prevPuzzleCommitmentStorageHash, uint256 coin, uint256 upperBound, bytes32 prevPuzzleDetailsStorageHash) public {
@@ -112,7 +117,7 @@ contract SmartContract {
         require(block.timestamp <= startTime + upperBound, "Too late: the time upper bound has been exceeded.");
 
         emit SolutionReceived(amountOfPuzzleParts, solution, witness);
-        amountOfPuzzleParts--;
+        amountOfPuzzleParts++;
 
         puzzleDetailsStorageHash = prevPuzzleDetailsStorageHash;
         puzzleCommitmentStorageHash = prevPuzzleCommitmentStorageHash;

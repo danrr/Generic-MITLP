@@ -133,10 +133,9 @@ class EDTLP:
         time_slack = current_time - sc.start_time
         for i, upper_bound in enumerate(upper_bounds):
             server_time = t[i] / squarings_per_sec + (current_time - sc.start_time)
-
             if server_time + time_slack > upper_bound:
                 raise UpperBoundException
-            time_slack = upper_bound - (server_time + time_slack)
+            time_slack = server_time + time_slack
 
         yield from self.gctlp.solve(pk, puzz)
 

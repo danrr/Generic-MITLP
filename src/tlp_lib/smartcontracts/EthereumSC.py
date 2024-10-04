@@ -149,9 +149,7 @@ class EthereumSC:
         if self._set_commitment_events is None:
             self.load_set_commitment_events()
 
-        amount_of_puzzles = len(self._initialized_events)
-        amount_of_puzzles_left = self._contract.functions.amountOfPuzzleParts().call()
-        solution_index = amount_of_puzzles - amount_of_puzzles_left
+        solution_index = self._contract.functions.amountOfPuzzleParts().call()
 
         (_, commitment, prev_puzzle_commitment_sh) = self._set_commitment_events[solution_index]
         (_, coin, upper_bound, prev_puzzle_details_sh) = self._initialized_events[solution_index]
@@ -358,7 +356,7 @@ class EthereumSC:
             (log["args"]["index"], log["args"]["commitment"], log["args"]["prevPuzzleCommitmentStorageHash"])
             for log in logs
         ]
-        self._set_commitment_events.sort(key=lambda x: -x[0])
+        self._set_commitment_events.sort(key=lambda x: x[0])
 
     def load_received_solution_events(self):
         if self._sc_init_block is None:
@@ -368,4 +366,4 @@ class EthereumSC:
         self._received_solution_events = [
             (log["args"]["revIndex"], log["args"]["solution"], log["args"]["witness"]) for log in logs
         ]
-        self._received_solution_events.sort(key=lambda x: -x[0])
+        self._received_solution_events.sort(key=lambda x: x[0])
