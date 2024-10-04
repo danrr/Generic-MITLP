@@ -1,5 +1,4 @@
 import csv
-import os
 from datetime import datetime
 from multiprocessing import Pool
 from operator import itemgetter
@@ -7,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from consts import KEYSIZE, MESSAGE, SEED, SQUARINGS_PER_SEC
-from utils import timer, timer_with_output
+from utils import timer, timer_with_output, try_make_process_rude
 
 from tlp_lib import EDTLP, GCTLP, MITLP, TLP
 from tlp_lib.protocols import (
@@ -30,7 +29,7 @@ SOLVE = True
 
 
 def benchmark_time_tlp(instances: int):
-    os.nice(-20)
+    try_make_process_rude()
     output = {
         "name": "TLP",
         "extra": None,
@@ -96,7 +95,7 @@ def benchmark_time_tlp(instances: int):
 
 
 def benchmark_time_mitlp(instances: int):
-    os.nice(-20)
+    try_make_process_rude()
     output = {
         "name": "MITLP",
         "extra": None,
@@ -141,7 +140,7 @@ def benchmark_time_mitlp(instances: int):
 
 
 def benchmark_time_gctlp(instances: int):
-    os.nice(-20)
+    try_make_process_rude()
     output = {
         "name": "GCTLP",
         "extra": None,
@@ -191,7 +190,7 @@ def benchmark_time_edtlp(instances: int, sc: Optional[SCInterface] = None):
     else:
         extra = "eth"
 
-    os.nice(-20)
+    try_make_process_rude()
     output = {
         "name": "EDTLP",
         "extra": extra,
@@ -355,8 +354,7 @@ def benchmark():
 
 
 if __name__ == "__main__":
-    # make the process not share the CPU with other processes
-    os.nice(-20)
+    try_make_process_rude()
 
     print("keysize:", KEYSIZE)
     benchmark()
