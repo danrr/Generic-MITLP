@@ -86,8 +86,8 @@ class EthereumSC:
 
     @property  # pyright: ignore
     def solutions(self) -> GCTLP_Encrypted_Messages:
-        # Always load the events to ensure that the list is up-to-date
-        self.load_received_solution_events()
+        if self._received_solution_events is None or len(self._received_solution_events) != len(self._initialized_events):
+            self.load_received_solution_events()
         return [solution for (_, solution, _) in self._received_solution_events]
 
     def get_solution_at(self, i: int) -> GCTLP_Encrypted_Message:
