@@ -39,7 +39,7 @@ def test_edtlp_too_few_coins():
     coins = [0]
     coins_acceptable = 1
     edtlp = EDTLP()
-    sc = MockSC().initiate(coins, 0, [0], [0], edtlp.gctlp, 1)
+    sc = MockSC().initiate(coins, [0], edtlp.gctlp, 1)
     with pytest.raises(CoinException):
         for _ in edtlp.solve(sc, Server_Info(1), (), [], coins_acceptable):  # type: ignore
             ...
@@ -50,14 +50,13 @@ def test_edtlp_helper_too_slow(keysize: Literal[1024, 2048]):
     coins = [1, 1]
     coins_acceptable = 1
     intervals = [1, 2]
-    start_time = 0
     helper_id = 1
     best_helper = Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
     weaker_helper = Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize] - 1)
 
     edtlp = EDTLP()
     pk, _ = edtlp.helper_setup(intervals, SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
-    _, sc = edtlp.server_delegation(intervals, best_helper, coins, start_time, helper_id, keysize=keysize)
+    sc = edtlp.server_delegation(intervals, best_helper, coins, helper_id, keysize=keysize)
     edtlp.gctlp = Mock(solve=Mock())
     with pytest.raises(UpperBoundException):
         for _ in edtlp.solve(sc, weaker_helper, pk, [], coins_acceptable):
@@ -70,14 +69,13 @@ def test_edtlp_helper_good_enough(keysize: Literal[1024, 2048]):
     coins = [1, 1]
     coins_acceptable = 1
     intervals = [1, 2]
-    start_time = 0
     helper_id = 1
     best_helper = Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
     weaker_helper = Server_Info(squarings=SQUARINGS_PER_SEC_UPPER_BOUND[keysize] - 1)
 
     edtlp = EDTLP()
     pk, _ = edtlp.helper_setup(intervals, SQUARINGS_PER_SEC_UPPER_BOUND[keysize])
-    _, sc = edtlp.server_delegation(intervals, weaker_helper, coins, start_time, helper_id, keysize=keysize)
+    sc = edtlp.server_delegation(intervals, weaker_helper, coins, helper_id, keysize=keysize)
     edtlp.gctlp = Mock(solve=Mock(return_value=iter(["solved_puzzles"])))
     assert ["solved_puzzles"] == list(edtlp.solve(sc, best_helper, pk, [], coins_acceptable))
     assert edtlp.gctlp.solve.call_count == 1
@@ -109,7 +107,7 @@ def test_edtlp(keysize: Literal[1024, 2048], messages: list[bytes], intervals: l
 
     # client
     csk = edtlp.client_setup()
-    encrypted_messages, start_time = edtlp.client_delegation(messages, csk)
+    encrypted_messages = edtlp.client_delegation(messages, csk)
 
     # server
     if isinstance(sc, EthereumSC):
@@ -120,11 +118,10 @@ def test_edtlp(keysize: Literal[1024, 2048], messages: list[bytes], intervals: l
         helper_id = client_helper_id
     sc.switch_to_account(server_id)
 
-    _, sc = edtlp.server_delegation(
+    sc = edtlp.server_delegation(
         intervals,
         server_info,
         coins,
-        start_time,
         helper_id,
         squarings_upper_bound=SQUARINGS_PER_SEC_UPPER_BOUND[keysize],
         keysize=keysize,
@@ -133,7 +130,7 @@ def test_edtlp(keysize: Literal[1024, 2048], messages: list[bytes], intervals: l
     # TPH
     sc.switch_to_account(client_helper_id)
     pk, sk = edtlp.helper_setup(intervals, squarings_per_second_helper)
-    puzz_list = edtlp.helper_generate(encrypted_messages, pk, sk, start_time, sc)
+    puzz_list = edtlp.helper_generate(encrypted_messages, pk, sk, sc)
 
     # TPH'
     sc.switch_to_account(server_helper_id)

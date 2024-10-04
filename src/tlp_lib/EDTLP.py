@@ -1,4 +1,5 @@
 from collections.abc import Callable, Generator
+from datetime import datetime
 from itertools import accumulate
 from operator import add
 from typing import Optional, Unpack
@@ -23,7 +24,7 @@ from tlp_lib.protocols import (
     TLP_Puzzles,
 )
 from tlp_lib.smartcontracts import MockSC
-from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SCInterface
+from tlp_lib.smartcontracts.protocols import SC_Coins, SCInterface
 from tlp_lib.wrappers import FernetWrapper, Random
 from tlp_lib.wrappers.protocols import RandGen, SymEnc
 
@@ -66,9 +67,8 @@ class EDTLP:
     def client_setup(self) -> GCTLP_Client_Key:
         return self.sym_enc.generate_key()
 
-    def client_delegation(self, messages: TLP_Messages, csk: GCTLP_Client_Key) -> tuple[GCTLP_Encrypted_Messages, int]:
-        start_time = 0  # todo: allow for delays
-        return [self.sym_enc.encrypt(csk, message) for message in messages], start_time
+    def client_delegation(self, messages: TLP_Messages, csk: GCTLP_Client_Key) -> GCTLP_Encrypted_Messages:
+        return [self.sym_enc.encrypt(csk, message) for message in messages]
         # todo: send encrypted messages to TPH and start_time to TPH and S
 
     def server_delegation(
@@ -76,27 +76,26 @@ class EDTLP:
         intervals: GCTLP_Intervals,
         server_info: Server_Info,
         coins: SC_Coins,
-        start_time: int,
         helper_id: int | ChecksumAddress,
         squarings_upper_bound: Optional[int] = None,
         keysize: int = 2048,
         cdeg: Callable[[int, int, Server_Info], float] = custom_extra_delay,
-    ) -> tuple[SC_ExtraTime, SCInterface]:
+    ) -> SCInterface:
         if squarings_upper_bound is None:
             squarings_upper_bound = SQUARINGS_PER_SEC_UPPER_BOUND[keysize]
+
+        start_time = 0
 
         extra_time = [cdeg(squarings_upper_bound, interval, server_info) for interval in intervals]
         upper_bounds = list(accumulate([start_time] + list(map(add, intervals, extra_time))))[1:]
         sc = self.smart_contract.initiate(
             coins=coins,
-            start_time=start_time,
-            extra_time=extra_time,
             upper_bounds=upper_bounds,
             gctlp=self.gctlp,
             helper_id=helper_id,
         )
 
-        return extra_time, sc
+        return sc
 
     def helper_setup(self, intervals: GCTLP_Intervals, squaring_per_second: int, keysize: int = 2048):
         return self.gctlp.setup(intervals, squaring_per_second, keysize=keysize)
@@ -106,7 +105,6 @@ class EDTLP:
         messages: GCTLP_Encrypted_Messages,
         pk: GCTLP_Public_Input,
         sk: GCTLP_Secret_Input,
-        start_time: int,
         sc: SCInterface,
     ):
         puzz_list, hash_list = self.gctlp.generate(messages, pk, sk)
@@ -131,14 +129,14 @@ class EDTLP:
         upper_bounds = sc.upper_bounds
         squarings_per_sec = server_info.squarings
 
-        prev_bound = sc.start_time
+        current_time = int(datetime.now().timestamp())
+        time_slack = current_time - sc.start_time
         for i, upper_bound in enumerate(upper_bounds):
-            server_time = t[i] / squarings_per_sec
-            maximum_time = upper_bound - prev_bound
+            server_time = t[i] / squarings_per_sec + (current_time - sc.start_time)
 
-            if server_time > maximum_time:
+            if server_time + time_slack > upper_bound:
                 raise UpperBoundException
-            prev_bound = upper_bound
+            time_slack = upper_bound - (server_time + time_slack)
 
         yield from self.gctlp.solve(pk, puzz)
 

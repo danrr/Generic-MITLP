@@ -12,7 +12,7 @@ from web3.contract.contract import ContractFunction, HexBytes  # pyright: ignore
 from web3.types import TxParams, TxReceipt, Wei
 
 from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, GCTLPInterface, TLP_Digest, TLP_Digests
-from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_UpperBounds
+from tlp_lib.smartcontracts.protocols import SC_Coins, SC_UpperBounds
 
 SOLC_VERSION = "0.8.0"
 CONTRACT_NAME = "SmartContract"
@@ -80,10 +80,6 @@ class EthereumSC:
     def get_solution_at(self, i: int) -> GCTLP_Encrypted_Message:
         return self._contract.functions.getSolutionAt(i).call()
 
-    @property  # pyright: ignore[reportPropertyTypeMismatch]
-    def initial_timestamp(self) -> int:
-        return self._contract.functions.initialTimestamp().call()
-
     @property
     def account(self) -> ChecksumAddress:
         if self._account is None:
@@ -99,8 +95,6 @@ class EthereumSC:
     def initiate(
         self,
         coins: SC_Coins,
-        start_time: int,
-        extra_time: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
         gctlp: GCTLPInterface,
         helper_id: int | ChecksumAddress,
@@ -113,9 +107,7 @@ class EthereumSC:
             raise ValueError("The hash function must be Keccak256")
 
         abi, sc_bytecode = self._compile_contract()
-        contract_address = self._deploy_contract(
-            sc_bytecode, abi, coins, start_time, extra_time, upper_bounds, helper_id
-        )
+        contract_address = self._deploy_contract(sc_bytecode, abi, coins, upper_bounds, helper_id)
         logger.info("Deployed Contract Successfully: ", contract_address)
         return self
 
@@ -184,8 +176,6 @@ class EthereumSC:
         bytecode: str,
         abi: str,
         coins: SC_Coins,
-        start_time: int,
-        extra_times: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
         helper_id: int | ChecksumAddress,
     ) -> Optional[ChecksumAddress]:
@@ -204,14 +194,13 @@ class EthereumSC:
             address=tx_receipt["contractAddress"], abi=abi
         )  # pyright: ignore[reportAttributeAccessIssue]
 
-        self._initialize_in_batches(coins, start_time, upper_bounds, helper_id)
+        self._initialize_in_batches(coins, upper_bounds, helper_id)
 
         return tx_receipt["contractAddress"]
 
     def _initialize_in_batches(
         self,
         coins: SC_Coins,
-        start_time: int,
         upper_bounds: SC_UpperBounds,
         helper_id: int | ChecksumAddress,
     ) -> None:
@@ -229,7 +218,6 @@ class EthereumSC:
             if not self._has_succeeded(
                 self._contract.functions.initialize(
                     coins_batch,
-                    start_time,
                     list(map(int, upper_bounds_batch)),
                     helper_id,
                 ),

@@ -30,7 +30,7 @@ SOLVE = True
 
 
 def benchmark_time_tlp(instances: int):
-    os.nice(-20)
+    # os.nice(-20)
     output = {
         "name": "TLP",
         "extra": None,
@@ -96,7 +96,7 @@ def benchmark_time_tlp(instances: int):
 
 
 def benchmark_time_mitlp(instances: int):
-    os.nice(-20)
+    # os.nice(-20)
     output = {
         "name": "MITLP",
         "extra": None,
@@ -141,7 +141,7 @@ def benchmark_time_mitlp(instances: int):
 
 
 def benchmark_time_gctlp(instances: int):
-    os.nice(-20)
+    # os.nice(-20)
     output = {
         "name": "GCTLP",
         "extra": None,
@@ -191,7 +191,7 @@ def benchmark_time_edtlp(instances: int, sc: Optional[SCInterface] = None):
     else:
         extra = "eth"
 
-    os.nice(-20)
+    # os.nice(-20)
     output = {
         "name": "EDTLP",
         "extra": extra,
@@ -209,7 +209,7 @@ def benchmark_time_edtlp(instances: int, sc: Optional[SCInterface] = None):
     time_client_setup, csk = timer_with_output(edtlp.client_setup)
     output["setup"] = time_client_setup
 
-    time_client_delegation, (encrypted_messages, start_time) = timer_with_output(edtlp.client_delegation, messages, csk)
+    time_client_delegation, encrypted_messages = timer_with_output(edtlp.client_delegation, messages, csk)
     output["client delegation"] = time_client_delegation
 
     coins = [1] * len(distinct_intervals)
@@ -221,8 +221,8 @@ def benchmark_time_edtlp(instances: int, sc: Optional[SCInterface] = None):
         helper_id = client_helper_id
     sc.switch_to_account(server_id)
     server_info = Server_Info(1)
-    time_server_delegation, (_, sc) = timer_with_output(
-        edtlp.server_delegation, distinct_intervals, server_info, coins, start_time, helper_id, None, KEYSIZE
+    time_server_delegation, sc = timer_with_output(
+        edtlp.server_delegation, distinct_intervals, server_info, coins, helper_id, None, KEYSIZE
     )
     output["server delegation"] = time_server_delegation
 
@@ -232,9 +232,7 @@ def benchmark_time_edtlp(instances: int, sc: Optional[SCInterface] = None):
     )
     output["helper setup"] = time_helper_setup
 
-    time_helper_generate, puzz_list = timer_with_output(
-        edtlp.helper_generate, encrypted_messages, pk, sk, start_time, sc
-    )
+    time_helper_generate, puzz_list = timer_with_output(edtlp.helper_generate, encrypted_messages, pk, sk, sc)
     output["helper generate"] = time_helper_generate
 
     if not SOLVE:
@@ -356,7 +354,7 @@ def benchmark():
 
 if __name__ == "__main__":
     # make the process not share the CPU with other processes
-    os.nice(-20)
+    # os.nice(-20)
 
     print("keysize:", KEYSIZE)
     benchmark()
