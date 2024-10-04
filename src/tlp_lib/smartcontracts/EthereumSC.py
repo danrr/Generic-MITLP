@@ -40,7 +40,8 @@ class EthereumSC:
     _sc_init_block: Optional[int] = None
 
     def __init__(
-        self, account: Optional[ChecksumAddress] = None, web3: Optional[Web3] = None, contract_path: str = CONTRACT_PATH
+            self, account: Optional[ChecksumAddress] = None, web3: Optional[Web3] = None,
+            contract_path: str = CONTRACT_PATH
     ):
         logger.info("Initiating EthereumSC")
         self._initiate_network(web3)
@@ -57,10 +58,18 @@ class EthereumSC:
 
     @commitments.setter
     def commitments(self, commitments: TLP_Digests):
+
+        # Reverse the commitments to match the order in the SC
+        commitments.reverse()
+
         start_index = 0
-        # Call the setCommitments function for the current batch with the appropriate start index
-        if not self._has_succeeded(self._contract.functions.setCommitments(commitments)):
-            raise RuntimeError(f"Commitments were not set correctly for batch starting at index {start_index}")
+        for commitments_batch in itertools.batched(commitments, self._SC_PUZZLE_BATCH_SIZE):
+
+            # Call the setCommitments function for the current batch with the appropriate start index
+            if not self._has_succeeded(self._contract.functions.setCommitments(commitments_batch)):
+                raise RuntimeError(f"Commitments were not set correctly for batch starting at index {start_index}")
+
+            start_index += len(commitments_batch)
 
     def get_commitment_at(self, i: int) -> TLP_Digest:
         return self._contract.functions.getCommitmentAt(i).call()
@@ -86,7 +95,8 @@ class EthereumSC:
 
     @property  # pyright: ignore
     def solutions(self) -> GCTLP_Encrypted_Messages:
-        if self._received_solution_events is None or len(self._received_solution_events) != len(self._initialized_events):
+        if self._received_solution_events is None or len(self._received_solution_events) != len(
+                self._initialized_events):
             self.load_received_solution_events()
         return [solution for (_, solution, _) in self._received_solution_events]
 
@@ -106,11 +116,11 @@ class EthereumSC:
     # Public Methods #
 
     def initiate(
-        self,
-        coins: SC_Coins,
-        upper_bounds: SC_UpperBounds,
-        gctlp: GCTLPInterface,
-        helper_id: int | ChecksumAddress,
+            self,
+            coins: SC_Coins,
+            upper_bounds: SC_UpperBounds,
+            gctlp: GCTLPInterface,
+            helper_id: int | ChecksumAddress,
     ) -> Self:
         """
         Deploys the contract to the network and deposit the coins into the contract
@@ -147,9 +157,9 @@ class EthereumSC:
         (_, coin, upper_bound, prev_puzzle_details_sh) = self._initialized_events[solution_index]
 
         if not self._has_succeeded(
-            self._contract.functions.addSolution(
-                solution, witness, commitment, prev_puzzle_commitment_sh, coin, upper_bound, prev_puzzle_details_sh
-            )
+                self._contract.functions.addSolution(
+                    solution, witness, commitment, prev_puzzle_commitment_sh, coin, upper_bound, prev_puzzle_details_sh
+                )
         ):
             raise RuntimeError("Solution was not added correctly")
 
@@ -168,9 +178,9 @@ class EthereumSC:
         (_, coin, upper_bound, prev_puzzle_details_sh) = self._initialized_events[solution_index]
 
         if not self._has_succeeded(
-            self._contract.functions.payBack(
-                commitment, prev_puzzle_commitment_sh, coin, upper_bound, prev_puzzle_details_sh
-            )
+                self._contract.functions.payBack(
+                    commitment, prev_puzzle_commitment_sh, coin, upper_bound, prev_puzzle_details_sh
+                )
         ):
             raise RuntimeError("Payback was not successful")
 
@@ -188,7 +198,7 @@ class EthereumSC:
 
     # Private Methods #
 
-    _SC_PUZZLE_BATCH_SIZE: int = 250
+    _SC_PUZZLE_BATCH_SIZE: int = 2000
 
     def _compile_contract(self) -> tuple[str, str]:
         """
@@ -214,12 +224,12 @@ class EthereumSC:
         return abi, bytecode
 
     def _deploy_contract(
-        self,
-        bytecode: str,
-        abi: str,
-        coins: SC_Coins,
-        upper_bounds: SC_UpperBounds,
-        helper_id: int | ChecksumAddress,
+            self,
+            bytecode: str,
+            abi: str,
+            coins: SC_Coins,
+            upper_bounds: SC_UpperBounds,
+            helper_id: int | ChecksumAddress,
     ) -> Optional[ChecksumAddress]:
         """
         Deploys the contract to the network
@@ -241,27 +251,19 @@ class EthereumSC:
         self._set_commitment_events = None
         self._received_solution_events = None
 
-        # TODO - support for multiple batches
-        # Calculate the value to send with this batch
-        value_to_send = sum(coins)
-        # Call the initialize function for the current batch
-        if not self._has_succeeded(
-            self._contract.functions.initialize(
-                coins,
-                list(map(int, upper_bounds)),
-                helper_id,
-            ),
-            value_to_send,
-        ):
-            raise RuntimeError("Initialize has failed for single-call")
+        # Reverse because the SC expects the coins and upper bounds in reverse order
+        coins.reverse()
+        upper_bounds.reverse()
+
+        self._initialize_in_batches(coins, upper_bounds, helper_id)
 
         return tx_receipt["contractAddress"]
 
     def _initialize_in_batches(
-        self,
-        coins: SC_Coins,
-        upper_bounds: SC_UpperBounds,
-        helper_id: int | ChecksumAddress,
+            self,
+            coins: SC_Coins,
+            upper_bounds: SC_UpperBounds,
+            helper_id: int | ChecksumAddress,
     ) -> None:
         # Ensure that all lists have the same length
         assert len(coins) == len(upper_bounds), "All input lists must have the same length"
@@ -275,12 +277,12 @@ class EthereumSC:
 
             # Call the initialize function for the current batch
             if not self._has_succeeded(
-                self._contract.functions.initialize(
-                    coins_batch,
-                    list(map(int, upper_bounds_batch)),
-                    helper_id,
-                ),
-                value_to_send,
+                    self._contract.functions.initialize(
+                        coins_batch,
+                        list(map(int, upper_bounds_batch)),
+                        helper_id,
+                    ),
+                    value_to_send,
             ):
                 raise RuntimeError("Initialize has failed for batch")
 
@@ -293,7 +295,7 @@ class EthereumSC:
         if web3 is None:
             self._backend = PyEVMBackend.from_mnemonic(
                 "test test test test test test test test test test test junk",
-                genesis_state_overrides={"balance": Wei(1_000_000 * 10**18)},
+                genesis_state_overrides={"balance": Wei(1_000_000 * 10 ** 18)},
             )
 
             provider = EthereumTesterProvider(ethereum_tester=EthereumTester(backend=self._backend))
@@ -345,7 +347,7 @@ class EthereumSC:
             )
             for log in logs
         ]
-        self._initialized_events.sort(key=lambda x: x[0])
+        self._initialized_events.sort(key=lambda x: -x[0])
 
     def load_set_commitment_events(self):
         if self._sc_init_block is None:
@@ -356,7 +358,7 @@ class EthereumSC:
             (log["args"]["index"], log["args"]["commitment"], log["args"]["prevPuzzleCommitmentStorageHash"])
             for log in logs
         ]
-        self._set_commitment_events.sort(key=lambda x: x[0])
+        self._set_commitment_events.sort(key=lambda x: -x[0])
 
     def load_received_solution_events(self):
         if self._sc_init_block is None:

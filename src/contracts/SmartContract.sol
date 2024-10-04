@@ -52,18 +52,19 @@ contract SmartContract {
         require(_coins.length > 0, "The length of the coins array should be greater than 0.");
         require(_helperID != address(0), "The helper ID should not be the zero address.");
         require(contractStatus == Status.Setup, "Contract setup is already completed.");
-        require(amountOfPuzzleParts == 0, "The amount of puzzle parts should be 0.");
 
-        helperID = _helperID;
-        startTime = block.timestamp;
-        owner = msg.sender;
+        if (amountOfPuzzleParts == 0) {
+            helperID = _helperID;
+            startTime = block.timestamp;
+            owner = msg.sender;
+        }
 
         bytes32 _puzzleDetailsStorageHash = puzzleDetailsStorageHash;
 
         uint256 receivedValue = msg.value;
 
-        for (uint256 i = _coins.length; i > 0; i--) {
-                uint256 index = i - 1;
+        for (uint256 i = 0; i < _coins.length; i++) {
+                uint256 index = i;
 
                 emit Initialized(index, _coins[index], _upperBounds[index], _puzzleDetailsStorageHash);
 
@@ -85,13 +86,12 @@ contract SmartContract {
         }
 
         require(contractStatus == Status.SettingCommitments, "Contract is not in SettingCommitments status.");
-        require(_commitments.length == amountOfPuzzleParts, "The length of the commitments array should be equal to the amount of puzzle parts.");
 
         bytes32 _puzzleCommitmentStorageHash = puzzleCommitmentStorageHash;
-        for (uint256 i = _commitments.length; i > 0; i--) {
-            uint256 index = i - 1;
+        for (uint256 i = 0; i < _commitments.length; i++) {
+            uint256 index = i;
 
-            emit CommitmentSet(index, _commitments[index], _puzzleCommitmentStorageHash);
+            emit CommitmentSet(amountOfPuzzleParts + index, _commitments[index], _puzzleCommitmentStorageHash);
             _puzzleCommitmentStorageHash = _hashPuzzleCommitment(_commitments[index], _puzzleCommitmentStorageHash);
         }
 
