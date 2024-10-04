@@ -1,5 +1,7 @@
 import functools
+import os
 import timeit
+import warnings
 from typing import Callable, Optional
 
 from consts import NUMBER
@@ -7,6 +9,14 @@ from consts import NUMBER
 
 def timer[R, **P](f: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> float:
     return timeit.Timer(functools.partial(f, *args, **kwargs)).timeit(number=NUMBER)
+
+
+# make the process not share the CPU with other processes
+def try_make_process_rude():
+    try:
+        os.nice(-20)
+    except PermissionError:
+        warnings.warn("Could not make process rude to prevent sharing the CPU with other processes", RuntimeWarning)
 
 
 def timer_with_output[R, **P](f: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> tuple[float, R]:

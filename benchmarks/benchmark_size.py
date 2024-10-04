@@ -1,9 +1,9 @@
-import os
 import sys
 from typing import Any
 
 from consts import KEYSIZE, SEED, SQUARINGS_PER_SEC
 
+from benchmarks.utils import try_make_process_rude
 from tlp_lib import GCTLP, MITLP
 from tlp_lib.protocols import GCTLP_Public, GCTLP_Secret, MITLP_Public, MITLP_Secret
 
@@ -74,8 +74,7 @@ def benchmark():
 
 
 if __name__ == "__main__":
-    # make the process not share the CPU with other processes
-    os.nice(-20)
+    try_make_process_rude()
 
     print("keysize:", KEYSIZE)
     benchmark()

@@ -1,8 +1,7 @@
 import math
-import os
 
 from consts import KEYSIZE, MESSAGE, SEED, SQUARINGS_PER_SEC
-from utils import timer
+from utils import timer, try_make_process_rude
 
 from tlp_lib import TLP
 
@@ -19,5 +18,5 @@ def benchmark_tlp_solve_single():
 
 
 if __name__ == "__main__":
-    os.nice(-20)
+    try_make_process_rude()
     benchmark_tlp_solve_single()
