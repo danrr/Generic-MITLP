@@ -229,7 +229,6 @@ class EthereumSC:
             if not self._has_succeeded(
                 self._contract.functions.initialize(
                     coins_batch,
-                    start_time,
                     list(map(int, upper_bounds_batch)),
                     helper_id,
                 ),
