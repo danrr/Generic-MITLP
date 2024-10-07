@@ -20,6 +20,7 @@ from tlp_lib.protocols import (
 )
 from tlp_lib.smartcontracts import EthereumSC, MockSC
 from tlp_lib.smartcontracts.protocols import SCInterface
+from tlp_lib.wrappers.Keccak256Wrapper import Keccak256Wrapper
 
 SOLVE = True
 
@@ -202,7 +203,7 @@ def benchmark_time_edtlp(instances: int, sc: Optional[SCInterface] = None):
 
     messages = [MESSAGE] * instances
     distinct_intervals = [FIXED_INTERVAL] * instances
-    edtlp = EDTLP(seed=SEED, smart_contract=sc)
+    edtlp = EDTLP(seed=SEED, smart_contract=sc, hash_func=Keccak256Wrapper)
 
     time_client_setup, csk = timer_with_output(edtlp.client_setup)
     output["setup"] = time_client_setup
