@@ -8,6 +8,7 @@ SC_Coins = list[int]
 SC_UpperBounds = list[int]
 SC_ExtraTime = list[float]
 
+
 class SCInterface(Protocol):
 
     def initiate(

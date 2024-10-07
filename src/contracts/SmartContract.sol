@@ -49,7 +49,6 @@ contract SmartContract {
 
         if (amountOfPuzzleParts == 0) {
             helperID = _helperID;
-            startTime = block.timestamp;
             owner = msg.sender;
         }
 
@@ -83,8 +82,10 @@ contract SmartContract {
 
     function setCommitments(bytes[] calldata _commitments, uint startIndex) public onlyHelper {
         // Change status to SettingCommitments on the first call
+        // And start the timer for the puzzles
         if (contractStatus == Status.Setup) {
             contractStatus = Status.SettingCommitments;
+            startTime = block.timestamp;
         }
 
         require(contractStatus == Status.SettingCommitments, "Contract is not in SettingCommitments status.");
