@@ -1,4 +1,5 @@
 from collections.abc import Callable, Generator
+from datetime import datetime
 from itertools import accumulate
 from operator import add
 from typing import Optional, Unpack
@@ -129,14 +130,14 @@ class EDTLP:
         upper_bounds = sc.upper_bounds
         squarings_per_sec = server_info.squarings
 
-        prev_bound = sc.start_time
+        current_time = int(datetime.now().timestamp())
+        time_slack = current_time - sc.start_time
         for i, upper_bound in enumerate(upper_bounds):
-            server_time = t[i] / squarings_per_sec
-            maximum_time = upper_bound - prev_bound
+            server_time = t[i] / squarings_per_sec + (current_time - sc.start_time)
 
-            if server_time > maximum_time:
+            if server_time + time_slack > upper_bound:
                 raise UpperBoundException
-            prev_bound = upper_bound
+            time_slack = upper_bound - (server_time + time_slack)
 
         yield from self.gctlp.solve(pk, puzz)
 

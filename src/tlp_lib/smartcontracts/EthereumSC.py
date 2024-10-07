@@ -107,9 +107,7 @@ class EthereumSC:
             raise ValueError("The hash function must be Keccak256")
 
         abi, sc_bytecode = self._compile_contract()
-        contract_address = self._deploy_contract(
-            sc_bytecode, abi, coins, upper_bounds, helper_id
-        )
+        contract_address = self._deploy_contract(sc_bytecode, abi, coins, upper_bounds, helper_id)
         logger.info("Deployed Contract Successfully: ", contract_address)
         return self
 

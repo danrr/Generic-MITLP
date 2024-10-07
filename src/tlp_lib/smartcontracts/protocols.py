@@ -6,7 +6,7 @@ from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages,
 
 SC_Coins = list[int]
 SC_UpperBounds = list[int]
-SC_ExtraTime = int
+SC_ExtraTime = list[float]
 
 class SCInterface(Protocol):
 
