@@ -6,16 +6,13 @@ from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages,
 
 SC_Coins = list[int]
 SC_UpperBounds = list[int]
-SC_ExtraTime = list[float]
-
+SC_ExtraTime = int
 
 class SCInterface(Protocol):
 
     def initiate(
         self,
         coins: SC_Coins,
-        start_time: int,
-        extra_time: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
         gctlp: GCTLPInterface,
         helper_id: int | ChecksumAddress,
@@ -52,6 +49,3 @@ class SCInterface(Protocol):
 
     @property
     def solutions(self) -> GCTLP_Encrypted_Messages: ...
-
-    @property
-    def initial_timestamp(self) -> int: ...

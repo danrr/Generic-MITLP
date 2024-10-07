@@ -180,6 +180,7 @@ contract SmartContract {
 
     function payBack(uint puzzlePartIndex) public onlyOwner {
         require(!puzzleParts[puzzlePartIndex].paidOut, "The puzzle part has already been paid out.");
+        require(block.timestamp > startTime + puzzleParts[puzzlePartIndex].upperBound, "The time upper bound has not been exceeded yet.");
         puzzleParts[puzzlePartIndex].paidOut = true;
         payable(owner).transfer(address(this).balance);
     }

@@ -89,8 +89,6 @@ class EDTLP:
         upper_bounds = list(accumulate([start_time] + list(map(add, intervals, extra_time))))[1:]
         sc = self.smart_contract.initiate(
             coins=coins,
-            start_time=start_time,
-            extra_time=extra_time,
             upper_bounds=upper_bounds,
             gctlp=self.gctlp,
             helper_id=helper_id,

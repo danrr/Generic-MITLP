@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Self
 
 from tlp_lib.protocols import GCTLP_Encrypted_Message, GCTLP_Encrypted_Messages, GCTLPInterface, TLP_Digest, TLP_Digests
-from tlp_lib.smartcontracts.protocols import SC_Coins, SC_ExtraTime, SC_UpperBounds
+from tlp_lib.smartcontracts.protocols import SC_Coins, SC_UpperBounds
 
 
 class MockSC:
@@ -11,34 +11,28 @@ class MockSC:
     upper_bounds: SC_UpperBounds
     coins: SC_Coins
     solutions: GCTLP_Encrypted_Messages = []
-    initial_timestamp: int
     gctlp: GCTLPInterface
     helper_id: Any
-    extra_time: SC_ExtraTime
 
     def initiate(
         self,
         coins: SC_Coins,
-        start_time: int,
-        extra_time: SC_ExtraTime,
         upper_bounds: SC_UpperBounds,
         gctlp: GCTLPInterface,
         helper_id: Any,
     ) -> Self:
         self.coins = coins
-        self.start_time = start_time
-        self.extra_time = extra_time
+        self.start_time = int(datetime.now().timestamp())
         self.upper_bounds = upper_bounds
         self.gctlp = gctlp
         self.helper_id = helper_id
         self.commitments = []
         self.solutions = []
-        self.initial_timestamp = int(datetime.now().timestamp())
         return self
 
     def add_solution(self, solution: GCTLP_Encrypted_Message, witness: TLP_Digest):
         time = int(datetime.now().timestamp())
-        assert time >= self.initial_timestamp + self.start_time
+        assert time < self.start_time + self.upper_bounds[-1]
         self.check_solution(self.get_commitment_at(len(self.solutions)), solution, witness)
 
         self.solutions.append(solution)
@@ -58,7 +52,11 @@ class MockSC:
         pass
 
     def pay_back(self, i: int, /):
+        assert i < len(self.coins) and self.coins[i] >= 0
+        time = int(datetime.now().timestamp())
+        assert time > self.start_time + self.upper_bounds[i]
         print(f"paying back {self.coins[i]}")
+        self.coins[i] = -1
 
     def get_commitment_at(self, i: int, /) -> TLP_Digest:
         return self.commitments[i]
